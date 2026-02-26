@@ -1,121 +1,83 @@
--- [[ EMMA HUB - NIGHT UI EDITION ]] --
+-- [[ EMMA HUB - BLOX FRUIT FIX AURA ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. CẤU HÌNH HỆ THỐNG
+-- 1. CẤU HÌNH
 local MASTER_KEY = "emmawatson"
 local EMMA_LINK4SUB = "https://link4sub.com/4sbejuvt0f"
 
 ------------------------------------------------------------------
--- PHẦN 2: SIÊU LOGIC & GIAO DIỆN NIGHT UI (ĐÃ FIX THEO SOURCE ÔNG GỬI)
+-- PHẦN 2: LOGIC FARM & AURA (ĐÃ FIX KẾT NỐI)
 ------------------------------------------------------------------
 local function LoadMainScript()
     if not game:IsLoaded() then game.Loaded:Wait() end
 
-    -- TẢI SOURCE NIGHT UI (THEO ẢNH PNG ÔNG GỬI)
+    -- Tải NightUI
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
-    
-    -- KHỞI TẠO CỬA SỔ CHÍNH
     local Window = Library:NewWindow({
-        Title = "Emma Hub [PREMIUM]",
-        Description = "by Emma Team | discord.gg/EmmaHub",
+        Title = "Emma Hub [FIXED]",
+        Description = "Mã độc quyền: emmawatson",
         Scale = UserInputService.TouchEnabled and UDim2.fromOffset(480, 360) or UDim2.fromOffset(580, 430),
     })
 
-    -- [ KHAI BÁO TAB THEO CHUẨN NIGHT UI MỚI ]
     local tab_farm = Window:AddTab({ Title = "Basic Farm", Icon = "84348960772548" })
-    local tab_items = Window:AddTab({ Title = "Items Farm", Icon = "140508702736534" })
     local tab_local = Window:AddTab({ Title = "Local Player", Icon = "101609700892539" })
-    local tab_shop = Window:AddTab({ Title = "Shop Tab", Icon = "138611570249419" })
 
-    -- PHẦN 1: BASIC FARM (AUTO LEVEL, CANDY...)
+    -- BIẾN ĐIỀU KHIỂN
+    _G.AutoFarm = false
+    _G.FastAttack = true
+
+    -- NÚT BẬT FARM LEVEL (ĐÃ GẮN LOGIC AURA)
     tab_farm:AddToggle({
         Title = "Auto Farm Level",
-        Description = "Tự động cày cấp từ 1 đến Max cực nhanh",
         Default = false,
-        Callback = function(v) _G.AutoFarmLevel = v end
-    })
-
-    tab_farm:AddToggle({
-        Title = "Auto Farm Candy (Event)",
-        Description = "Tự động gom kẹo sự kiện",
-        Default = false,
-        Callback = function(v) _G.AutoCandy = v end
-    })
-
-    -- PHẦN 2: ITEMS FARM (QUEST CDK, SOUL GUITAR, YAMA...)
-    tab_items:AddToggle({
-        Title = "Auto Dual Cursed Katana (CDK)",
-        Default = false,
-        Callback = function(v) _G.AutoCDK = v end
-    })
-
-    tab_items:AddToggle({
-        Title = "Auto Soul Guitar",
-        Default = false,
-        Callback = function(v) _G.AutoGuitar = v end
-    })
-
-    -- PHẦN 3: LOCAL PLAYER (TỐC ĐỘ, NHẢY CAO...)
-    tab_local:AddSlider({
-        Title = "WalkSpeed (Tốc chạy)",
-        Min = 20, Max = 350, Default = 70,
-        Callback = function(v) pcall(function() LocalPlayer.Character.Humanoid.WalkSpeed = v end) end
-    })
-
-    tab_local:AddToggle({
-        Title = "Auto Rejoin",
-        Description = "Tự vào lại game khi bị văng",
-        Default = false,
-        Callback = function(v) _G.AutoRejoin = v end
-    })
-
-    -- [ FAST ATTACK & AURA CORE - LINH HỒN CỦA SCRIPT ]
-    _G.at = true
-    local Net = require(ReplicatedStorage.Modules.Net)
-    local hitRemote = Net:RemoteEvent("RegisterHit")
-    local attackRemote = Net:FindFirstChild("RE/RegisterAttack")
-
-    task.spawn(function()
-        while task.wait() do
-            if _G.at then
-                pcall(function()
-                    local myRoot = LocalPlayer.Character.HumanoidRootPart
-                    for _, mob in ipairs(workspace.Enemies:GetChildren()) do
-                        if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                            local hrp = mob.HumanoidRootPart
-                            if (hrp.Position - myRoot.Position).Magnitude <= 65 then
-                                local uuid = tostring(LocalPlayer.UserId):sub(2, 4) .. tostring(math.random(10000, 99999))
-                                if attackRemote then attackRemote:FireServer() end
-                                hitRemote:FireServer(hrp, {{mob, hrp}}, nil, nil, uuid)
+        Callback = function(v)
+            _G.AutoFarm = v
+            if v then
+                -- Ép script chạy vòng lặp farm ngay lập tức
+                task.spawn(function()
+                    while _G.AutoFarm do
+                        task.wait()
+                        pcall(function()
+                            -- Đây là lúc Aura và chém quái hoạt động
+                            local myRoot = LocalPlayer.Character.HumanoidRootPart
+                            for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+                                if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                                    if (mob.HumanoidRootPart.Position - myRoot.Position).Magnitude <= 70 then
+                                        -- Lệnh chém từ source Minh Nghĩa
+                                        local net = ReplicatedStorage.Modules.Net
+                                        net["RE/RegisterAttack"]:FireServer()
+                                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "Emma"..math.random(100,999))
+                                    end
+                                end
                             end
-                        end
+                        end)
                     end
                 end)
             end
         end
-    end)
-    
-    print("Emma Hub V3: FULL NIGHT UI & LOGIC LOADED!")
+    })
+
+    -- TỐC ĐỘ CHẠY
+    tab_local:AddSlider({
+        Title = "WalkSpeed",
+        Min = 20, Max = 350, Default = 70,
+        Callback = function(v) LocalPlayer.Character.Humanoid.WalkSpeed = v end
+    })
+
+    print("Emma Hub: Aura Fixed & Ready!")
 end
 
 ------------------------------------------------------------------
--- PHẦN 3: GIAO DIỆN LOGIN EMMA HUB (AUTH SYSTEM)
+-- PHẦN 3: GIAO DIỆN LOGIN
 ------------------------------------------------------------------
 local function CreateUI()
-    if getgenv().EMMA_LOADED then return end
-    getgenv().EMMA_LOADED = true
-    
     local ScreenGui = Instance.new("ScreenGui")
-    if gethui then ScreenGui.Parent = gethui() else ScreenGui.Parent = CoreGui end
+    ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
     
     local MainFrame = Instance.new("Frame")
     MainFrame.Size = UDim2.new(0, 360, 0, 260)
@@ -123,56 +85,26 @@ local function CreateUI()
     MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
     MainFrame.Parent = ScreenGui
-    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-    local stroke = Instance.new("UIStroke", MainFrame)
-    stroke.Color = Color3.fromRGB(180, 100, 255)
-
-    local Title = Instance.new("TextLabel", MainFrame)
-    Title.Text = "EMMA HUB - AUTH SYSTEM"
-    Title.Size = UDim2.new(1, 0, 0, 50)
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.BackgroundTransparency = 1
-    Title.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", MainFrame)
 
     local InputBox = Instance.new("TextBox", MainFrame)
     InputBox.Size = UDim2.new(0.85, 0, 0, 45)
     InputBox.Position = UDim2.new(0.075, 0, 0.3, 0)
-    InputBox.PlaceholderText = "Nhập mã độc quyền tại đây..."
-    InputBox.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-    InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Instance.new("UICorner", InputBox)
+    InputBox.PlaceholderText = "Nhập emmawatson..."
+    InputBox.Parent = MainFrame
 
     local Verify = Instance.new("TextButton", MainFrame)
     Verify.Size = UDim2.new(0.85, 0, 0, 45)
     Verify.Position = UDim2.new(0.075, 0, 0.55, 0)
-    Verify.Text = "XÁC NHẬN KEY"
+    Verify.Text = "XÁC NHẬN"
     Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
     Verify.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Instance.new("UICorner", Verify)
-
-    local GetKey = Instance.new("TextButton", MainFrame)
-    GetKey.Size = UDim2.new(0.85, 0, 0, 40)
-    GetKey.Position = UDim2.new(0.075, 0, 0.77, 0)
-    GetKey.Text = "LẤY KEY (LINK 4 SUB)"
-    GetKey.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    GetKey.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Instance.new("UICorner", GetKey)
-
-    GetKey.MouseButton1Click:Connect(function() setclipboard(EMMA_LINK4SUB) end)
+    Verify.Parent = MainFrame
 
     Verify.MouseButton1Click:Connect(function()
-        local input = InputBox.Text:gsub("%s+", "")
-        if input:lower() == MASTER_KEY:lower() then
-            Verify.Text = "CHẤP NHẬN!"
-            Verify.BackgroundColor3 = Color3.fromRGB(50, 255, 100)
-            task.wait(1)
+        if InputBox.Text:lower() == MASTER_KEY then
             ScreenGui:Destroy()
-            LoadMainScript() -- VÀO MENU FULL
-        else
-            Verify.Text = "SAI KEY RỒI!"
-            task.wait(1)
-            Verify.Text = "XÁC NHẬN KEY"
-            Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
+            LoadMainScript()
         end
     end)
 end
