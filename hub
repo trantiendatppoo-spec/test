@@ -1,50 +1,70 @@
--- [[ EMMA HUB V15 - TRUE AUTO FARM LEVEL ]] --
+-- [[ EMMA HUB V17 - FINAL ULTIMATE EDITION ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
-local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. CẤU HÌNH
+-- 1. CẤU HÌNH HỆ THỐNG
 local MASTER_KEY = "emmawatson"
 _G.AutoFarmLevel = false
-_G.WeaponType = "Melee"
+_G.TweenSpeed = 250
 
 ------------------------------------------------------------------
--- PHẦN 2: LOGIC NHẬN NHIỆM VỤ THEO LEVEL
+-- PHẦN 2: LẤY DỮ LIỆU GAME CHUẨN
 ------------------------------------------------------------------
-local function GetQuestName()
-    local lvl = LocalPlayer.Data.Level.Value
-    -- Đây là ví dụ logic nhận quest cơ bản, trong script gốc nó sẽ quét toàn bộ bãi quái
-    if lvl >= 1 and lvl <= 14 then return "BanditQuest1", "Bandit", 1
-    elseif lvl >= 15 and lvl <= 29 then return "BanditQuest2", "Monkey", 1
-    -- ... Hệ thống sẽ tự khớp với NPC gần nhất
+local Quests = require(ReplicatedStorage:WaitForChild("Quests"))
+local GuideModule = require(ReplicatedStorage:WaitForChild("GuideModule"))
+
+local function GetQuestData()
+    local level = LocalPlayer.Data.Level.Value
+    local name, quest, id = "", "", 0
+    local levelReq = 0
+    for i, v in next, Quests do
+        for id2, v2 in next, v do
+            if level >= v2.LevelReq and v2.LevelReq >= levelReq then
+                levelReq = v2.LevelReq
+                name, quest, id = next(v2.Task), i, id2
+            end
+        end
     end
-    return "BanditQuest1", "Bandit", 1
+    return name, quest, id
 end
 
 ------------------------------------------------------------------
--- PHẦN 3: SIÊU AURA & AUTO EQUIP (LUÔN CHẠY)
+-- PHẦN 3: HÀM BAY MƯỢT (TWEEN) - CHỐNG BAN & GIẬT
+------------------------------------------------------------------
+local function EmmaTween(targetCF)
+    local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local dist = (targetCF.Position - root.Position).Magnitude
+    if dist < 100 then root.CFrame = targetCF return end
+    local tween = TweenService:Create(root, TweenInfo.new(dist / _G.TweenSpeed, Enum.EasingStyle.Linear), {CFrame = targetCF})
+    tween:Play()
+end
+
+------------------------------------------------------------------
+-- PHẦN 4: SIÊU AURA & AUTO EQUIP (BÊ TỪ SOURCE XỊN)
 ------------------------------------------------------------------
 task.spawn(function()
-    while true do
-        task.wait()
+    while task.wait() do
         if _G.AutoFarmLevel then
             pcall(function()
                 local char = LocalPlayer.Character
-                -- Tự cầm vũ khí
-                local tool = LocalPlayer.Backpack:FindFirstChild(_G.WeaponType) or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
+                -- Tự động cầm vũ khí đang có
+                local tool = char:FindFirstChildOfClass("Tool") or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
                 if tool and not char:FindFirstChild(tool.Name) then
                     char.Humanoid:EquipTool(tool)
                 end
                 
-                -- Aura chém
+                -- Siêu Aura chém quái
                 for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                     if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        if (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude <= 75 then
+                        local hrp = mob.HumanoidRootPart
+                        if (hrp.Position - char.HumanoidRootPart.Position).Magnitude <= 75 then
                             ReplicatedStorage.Modules.Net["RE/RegisterAttack"]:FireServer()
-                            ReplicatedStorage.Modules.Net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV15")
+                            ReplicatedStorage.Modules.Net["RE/RegisterHit"]:FireServer(hrp, {{mob, hrp}}, nil, nil, "EmmaV17")
                         end
                     end
                 end
@@ -54,25 +74,39 @@ task.spawn(function()
 end)
 
 ------------------------------------------------------------------
--- PHẦN 4: VÒNG LẶP AUTO FARM LEVEL (NHẬN QUEST & BAY)
+-- PHẦN 5: VÒNG LẶP FARM LEVEL (NHẬN QUEST & BAY BÃI QUÁI)
 ------------------------------------------------------------------
-local function StartFarmLevel()
+local function StartEmmaFarm()
     task.spawn(function()
         while _G.AutoFarmLevel do
-            task.wait()
+            task.wait(0.1)
             pcall(function()
-                local qName, mName, qID = GetQuestName()
+                local mobName, questName, questID = GetQuestData()
+                local char = LocalPlayer.Character
                 
-                -- Nếu chưa có nhiệm vụ thì bay về NPC
                 if not LocalPlayer.PlayerGui.Main.Quest.Visible then
-                    local npcPos = Vector3.new(-1583, 7, 708) -- Ví dụ tọa độ NPC Bandit
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(npcPos)
-                    ReplicatedStorage.Remotes.CommF_:InvokeServer("StartQuest", qName, qID)
+                    -- Bay về NPC nhận nhiệm vụ
+                    local npcName = GuideModule.Data.LastClosestNPC
+                    local npc = workspace.NPCs:FindFirstChild(npcName) or ReplicatedStorage.NPCs:FindFirstChild(npcName)
+                    if npc then
+                        EmmaTween(npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 2))
+                        if (char.HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude < 10 then
+                            ReplicatedStorage.Remotes.CommF_:InvokeServer("StartQuest", questName, questID)
+                        end
+                    end
                 else
-                    -- Nếu có nhiệm vụ rồi thì bay ra bãi quái
-                    local targetMob = workspace.Enemies:FindFirstChild(mName) or workspace.EnemySpawns:FindFirstChild(mName)
+                    -- Bay ra bãi quái
+                    local targetMob = workspace.Enemies:FindFirstChild(mobName)
                     if targetMob then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = targetMob.CFrame * CFrame.new(0, 15, 0)
+                        EmmaTween(targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0))
+                    else
+                        -- Nếu bãi trống, bay về spawn đợi quái
+                        for _, sp in ipairs(workspace._WorldOrigin.EnemySpawns:GetChildren()) do
+                            if sp.Name:find(mobName) then
+                                EmmaTween(sp.CFrame * CFrame.new(0, 20, 0))
+                                break
+                            end
+                        end
                     end
                 end
             end)
@@ -81,22 +115,50 @@ local function StartFarmLevel()
 end
 
 ------------------------------------------------------------------
--- PHẦN 5: GIAO DIỆN
+-- PHẦN 6: GIAO DIỆN VÀ AUTH
 ------------------------------------------------------------------
 local function LoadMainScript()
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
-    local Window = Library:NewWindow({Title = "Emma Hub V15", Description = "Auto Farm Level Chuẩn"})
-
-    local tab = Window:AddTab({ Title = "Farm Level", Icon = "84348960772548" })
+    local Window = Library:NewWindow({Title = "Emma Hub V17", Description = "Bản Chốt Hạ - Full Aura & Farm"})
+    local tab = Window:AddTab({ Title = "Auto Farm", Icon = "84348960772548" })
 
     tab:AddToggle({
         Title = "Bật Auto Farm Level",
         Default = false,
         Callback = function(v)
             _G.AutoFarmLevel = v
-            if v then StartFarmLevel() end
+            if v then StartEmmaFarm() end
         end
     })
 end
 
--- (Phần CreateUI giữ nguyên như các bản trước)
+-- Login UI giữ nguyên
+local function CreateUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 360, 0, 200)
+    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    MainFrame.Parent = ScreenGui
+    Instance.new("UICorner", MainFrame)
+    local InputBox = Instance.new("TextBox", MainFrame)
+    InputBox.Size = UDim2.new(0.8, 0, 0, 40)
+    InputBox.Position = UDim2.new(0.1, 0, 0, 30)
+    InputBox.PlaceholderText = "Mã: emmawatson"
+    InputBox.Parent = MainFrame
+    local Verify = Instance.new("TextButton", MainFrame)
+    Verify.Size = UDim2.new(0.8, 0, 0, 40)
+    Verify.Position = UDim2.new(0.1, 0, 0, 80)
+    Verify.Text = "XÁC NHẬN"
+    Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
+    Verify.Parent = MainFrame
+    Verify.MouseButton1Click:Connect(function()
+        if InputBox.Text:lower() == MASTER_KEY then
+            ScreenGui:Destroy()
+            LoadMainScript()
+        end
+    end)
+end
+CreateUI()
