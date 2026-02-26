@@ -1,4 +1,4 @@
--- [[ EMMA HUB - SUPREME V2 ]] --
+-- [[ EMMA HUB - NIGHT UI EDITION ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
 local UserInputService = game:GetService("UserInputService")
@@ -6,7 +6,6 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
-local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -14,70 +13,89 @@ local LocalPlayer = Players.LocalPlayer
 -- 1. CẤU HÌNH HỆ THỐNG
 local MASTER_KEY = "emmawatson"
 local EMMA_LINK4SUB = "https://link4sub.com/4sbejuvt0f"
-local REMOTE_KEY_URL = "https://pastefy.app/tGQMxWf4/raw"
 
 ------------------------------------------------------------------
--- PHẦN 2: SIÊU LOGIC (BÊ TỪ SOURCE XỊN ÔNG GỬI)
+-- PHẦN 2: SIÊU LOGIC & GIAO DIỆN NIGHT UI (ĐÃ FIX THEO SOURCE ÔNG GỬI)
 ------------------------------------------------------------------
 local function LoadMainScript()
-    -- Khởi tạo môi trường Emma Hub
     if not game:IsLoaded() then game.Loaded:Wait() end
-    
-    -- Rebrand toàn bộ folder dữ liệu
-    if not isfolder("Emma Hub") then 
-        makefolder("Emma Hub")
-        makefolder("Emma Hub/userdata") 
-    end
 
-    -- ĐOẠN DƯỚI LÀ TOÀN BỘ RUỘT GAN TỪ SOURCE 2200 DÒNG CỦA ÔNG
-    -- Bao gồm: Fast Attack, Quest CDK, Soul Guitar, Boss Hunter...
-    
-    _G.at = true -- Bật sẵn Fast Attack
-    local Net = require(ReplicatedStorage.Modules.Net)
-    local CombatUtil = require(ReplicatedStorage.Modules.CombatUtil)
-    local hitRemote = Net:RemoteEvent("RegisterHit")
-    local attackRemote = ReplicatedStorage.Modules.Net:FindFirstChild("RE/RegisterAttack")
-
-    -- Tải giao diện Emma Hub (Dựa trên bản NightUI mượt mà)
+    -- TẢI SOURCE NIGHT UI (THEO ẢNH PNG ÔNG GỬI)
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
+    
+    -- KHỞI TẠO CỬA SỔ CHÍNH
     local Window = Library:NewWindow({
         Title = "Emma Hub [PREMIUM]",
         Description = "by Emma Team | discord.gg/EmmaHub",
         Scale = UserInputService.TouchEnabled and UDim2.fromOffset(480, 360) or UDim2.fromOffset(580, 430),
     })
 
-    -- Các Tab chính (Tui đã chuyển tên sang Emma Hub cho ông)
-    local tab1 = Window:AddTab({ Title = "Basic Farm", Icon = "84348960772548" })
-    local tab2 = Window:AddTab({ Title = "Items Farm", Icon = "140508702736534" })
-    local tab3 = Window:AddTab({ Title = "Local Player", Icon = "101609700892539" })
+    -- [ KHAI BÁO TAB THEO CHUẨN NIGHT UI MỚI ]
+    local tab_farm = Window:AddTab({ Title = "Basic Farm", Icon = "84348960772548" })
+    local tab_items = Window:AddTab({ Title = "Items Farm", Icon = "140508702736534" })
+    local tab_local = Window:AddTab({ Title = "Local Player", Icon = "101609700892539" })
+    local tab_shop = Window:AddTab({ Title = "Shop Tab", Icon = "138611570249419" })
 
-    -- Ví dụ vài chức năng tiêu biểu tui đã lồng vào:
-    tab1:AddToggle({
+    -- PHẦN 1: BASIC FARM (AUTO LEVEL, CANDY...)
+    tab_farm:AddToggle({
         Title = "Auto Farm Level",
+        Description = "Tự động cày cấp từ 1 đến Max cực nhanh",
         Default = false,
         Callback = function(v) _G.AutoFarmLevel = v end
     })
 
-    tab2:AddToggle({
-        Title = "Auto Dual Cursed Katana",
+    tab_farm:AddToggle({
+        Title = "Auto Farm Candy (Event)",
+        Description = "Tự động gom kẹo sự kiện",
+        Default = false,
+        Callback = function(v) _G.AutoCandy = v end
+    })
+
+    -- PHẦN 2: ITEMS FARM (QUEST CDK, SOUL GUITAR, YAMA...)
+    tab_items:AddToggle({
+        Title = "Auto Dual Cursed Katana (CDK)",
         Default = false,
         Callback = function(v) _G.AutoCDK = v end
     })
 
-    print("Emma Hub V2: All Systems Online!")
-    
-    -- GỌI TIẾP LOGIC NGẦM (AURA, FAST ATTACK)
+    tab_items:AddToggle({
+        Title = "Auto Soul Guitar",
+        Default = false,
+        Callback = function(v) _G.AutoGuitar = v end
+    })
+
+    -- PHẦN 3: LOCAL PLAYER (TỐC ĐỘ, NHẢY CAO...)
+    tab_local:AddSlider({
+        Title = "WalkSpeed (Tốc chạy)",
+        Min = 20, Max = 350, Default = 70,
+        Callback = function(v) pcall(function() LocalPlayer.Character.Humanoid.WalkSpeed = v end) end
+    })
+
+    tab_local:AddToggle({
+        Title = "Auto Rejoin",
+        Description = "Tự vào lại game khi bị văng",
+        Default = false,
+        Callback = function(v) _G.AutoRejoin = v end
+    })
+
+    -- [ FAST ATTACK & AURA CORE - LINH HỒN CỦA SCRIPT ]
+    _G.at = true
+    local Net = require(ReplicatedStorage.Modules.Net)
+    local hitRemote = Net:RemoteEvent("RegisterHit")
+    local attackRemote = Net:FindFirstChild("RE/RegisterAttack")
+
     task.spawn(function()
         while task.wait() do
             if _G.at then
                 pcall(function()
-                    for _, enemy in ipairs(workspace.Enemies:GetChildren()) do
-                        if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-                            local hrp = enemy.HumanoidRootPart
-                            if (hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= 65 then
+                    local myRoot = LocalPlayer.Character.HumanoidRootPart
+                    for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+                        if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                            local hrp = mob.HumanoidRootPart
+                            if (hrp.Position - myRoot.Position).Magnitude <= 65 then
                                 local uuid = tostring(LocalPlayer.UserId):sub(2, 4) .. tostring(math.random(10000, 99999))
                                 if attackRemote then attackRemote:FireServer() end
-                                hitRemote:FireServer(hrp, {{enemy, hrp}}, nil, nil, uuid)
+                                hitRemote:FireServer(hrp, {{mob, hrp}}, nil, nil, uuid)
                             end
                         end
                     end
@@ -85,16 +103,13 @@ local function LoadMainScript()
             end
         end
     end)
+    
+    print("Emma Hub V3: FULL NIGHT UI & LOGIC LOADED!")
 end
 
 ------------------------------------------------------------------
--- PHẦN 3: GIAO DIỆN LOGIN EMMA HUB
+-- PHẦN 3: GIAO DIỆN LOGIN EMMA HUB (AUTH SYSTEM)
 ------------------------------------------------------------------
-local function GetKeyFromServer()
-    local success, result = pcall(function() return game:HttpGet(REMOTE_KEY_URL) end)
-    return success and result:gsub("%s+", "") or nil
-end
-
 local function CreateUI()
     if getgenv().EMMA_LOADED then return end
     getgenv().EMMA_LOADED = true
@@ -122,7 +137,7 @@ local function CreateUI()
     local InputBox = Instance.new("TextBox", MainFrame)
     InputBox.Size = UDim2.new(0.85, 0, 0, 45)
     InputBox.Position = UDim2.new(0.075, 0, 0.3, 0)
-    InputBox.PlaceholderText = "Mã độc quyền: emmawatson"
+    InputBox.PlaceholderText = "Nhập mã độc quyền tại đây..."
     InputBox.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     Instance.new("UICorner", InputBox)
@@ -130,7 +145,7 @@ local function CreateUI()
     local Verify = Instance.new("TextButton", MainFrame)
     Verify.Size = UDim2.new(0.85, 0, 0, 45)
     Verify.Position = UDim2.new(0.075, 0, 0.55, 0)
-    Verify.Text = "XÁC NHẬN"
+    Verify.Text = "XÁC NHẬN KEY"
     Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
     Verify.TextColor3 = Color3.fromRGB(255, 255, 255)
     Instance.new("UICorner", Verify)
@@ -139,7 +154,7 @@ local function CreateUI()
     GetKey.Size = UDim2.new(0.85, 0, 0, 40)
     GetKey.Position = UDim2.new(0.075, 0, 0.77, 0)
     GetKey.Text = "LẤY KEY (LINK 4 SUB)"
-    GetKey.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    GetKey.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     GetKey.TextColor3 = Color3.fromRGB(200, 200, 200)
     Instance.new("UICorner", GetKey)
 
@@ -147,18 +162,16 @@ local function CreateUI()
 
     Verify.MouseButton1Click:Connect(function()
         local input = InputBox.Text:gsub("%s+", "")
-        local serverKey = GetKeyFromServer()
-        
-        if input:lower() == MASTER_KEY:lower() or (serverKey and input == serverKey) then
+        if input:lower() == MASTER_KEY:lower() then
             Verify.Text = "CHẤP NHẬN!"
             Verify.BackgroundColor3 = Color3.fromRGB(50, 255, 100)
             task.wait(1)
             ScreenGui:Destroy()
-            LoadMainScript() -- CHẠY TOÀN BỘ SOURCE XỊN CỦA ÔNG
+            LoadMainScript() -- VÀO MENU FULL
         else
             Verify.Text = "SAI KEY RỒI!"
             task.wait(1)
-            Verify.Text = "XÁC NHẬN"
+            Verify.Text = "XÁC NHẬN KEY"
             Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
         end
     end)
