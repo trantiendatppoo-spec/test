@@ -1,4 +1,4 @@
--- [[ EMMA HUB V10 - PERMANENT AURA & MANUAL FARM ]] --
+-- [[ EMMA HUB V11 - ANTI-BAN & NO TELEPORT BACK ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,27 +9,23 @@ local LocalPlayer = Players.LocalPlayer
 local MASTER_KEY = "emmawatson"
 
 ------------------------------------------------------------------
--- PHẦN 2: SIÊU AURA VĨNH VIỄN (KHÔNG TẮT ĐƯỢC - VÔ GAME LÀ VỤT)
+-- PHẦN 2: SIÊU AURA VĨNH VIỄN (VÔ GAME LÀ VỤT)
 ------------------------------------------------------------------
--- Vòng lặp này sẽ chạy độc lập và mãi mãi ngay khi script được thực thi
 task.spawn(function()
     while true do
         task.wait()
         pcall(function()
             local char = LocalPlayer.Character
-            local myRoot = char and char:FindFirstChild("HumanoidRootPart")
-            local currentTool = char and char:FindFirstChildOfClass("Tool")
-            
-            -- Chỉ Aura khi đang cầm vũ khí trên tay
-            if myRoot and currentTool then
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Tool") then
+                local myRoot = char.HumanoidRootPart
                 for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                     if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
                         local mobRoot = mob.HumanoidRootPart
-                        -- Khoảng cách Aura cực chuẩn
-                        if (mobRoot.Position - myRoot.Position).Magnitude <= 75 then
+                        -- Khoảng cách Aura an toàn
+                        if (mobRoot.Position - myRoot.Position).Magnitude <= 70 then
                             local net = ReplicatedStorage.Modules.Net
                             net["RE/RegisterAttack"]:FireServer()
-                            net["RE/RegisterHit"]:FireServer(mobRoot, {{mob, mobRoot}}, nil, nil, "EmmaPermanentAura")
+                            net["RE/RegisterHit"]:FireServer(mobRoot, {{mob, mobRoot}}, nil, nil, "EmmaV11")
                         end
                     end
                 end
@@ -39,7 +35,7 @@ task.spawn(function()
 end)
 
 ------------------------------------------------------------------
--- PHẦN 3: LOGIC AUTO FARM (CHỈ CHẠY KHI BẤM NÚT)
+-- PHẦN 3: LOGIC AUTO FARM AN TOÀN (KHÔNG GIẬT VỀ CHỖ CŨ)
 ------------------------------------------------------------------
 _G.AutoFarm = false
 local current_target = nil 
@@ -49,12 +45,12 @@ local function StartEmmaFarm()
         while _G.AutoFarm do
             task.wait()
             pcall(function()
-                local myRoot = LocalPlayer.Character.HumanoidRootPart
+                local char = LocalPlayer.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
                 
-                -- Tìm và bay đến quái
                 if current_target and current_target.Parent and current_target:FindFirstChild("Humanoid") and current_target.Humanoid.Health > 0 then
-                    myRoot.CFrame = current_target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
-                    -- (Aura vĩnh viễn ở Phần 2 sẽ tự động chém khi ông đứng gần con này)
+                    -- Bay đến quái nhưng không dùng tween rườm rà gây giật
+                    char.HumanoidRootPart.CFrame = current_target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
                 else
                     current_target = nil
                     for _, mob in ipairs(workspace.Enemies:GetChildren()) do
@@ -66,6 +62,7 @@ local function StartEmmaFarm()
                 end
             end)
         end
+        -- KHI TẮT VÒNG LẶP: KHÔNG CÓ LỆNH TP VỀ CHỖ CŨ -> NHÂN VẬT ĐỨNG YÊN
     end)
 end
 
@@ -75,20 +72,27 @@ end
 local function LoadMainScript()
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
     local Window = Library:NewWindow({
-        Title = "Emma Hub [V10 ALWAYS AURA]",
-        Description = "Aura đã được bật vĩnh viễn! Mã: emmawatson",
+        Title = "Emma Hub [V11 ANTI-BAN]",
+        Description = "Aura Always On | Safe Farm | Mã: emmawatson",
         Scale = game:GetService("UserInputService").TouchEnabled and UDim2.fromOffset(480, 360) or UDim2.fromOffset(580, 430),
     })
 
     local tab = Window:AddTab({ Title = "Farm Control", Icon = "84348960772548" })
 
-    -- Nút này chỉ điều khiển việc "bay đi tìm quái"
     tab:AddToggle({
-        Title = "Bật Auto Farm (Bay tìm quái)",
+        Title = "Auto Farm (No Back-TP)",
         Default = false,
         Callback = function(v)
             _G.AutoFarm = v
-            if v then StartEmmaFarm() else current_target = nil end
+            if v then 
+                StartEmmaFarm() 
+            else 
+                current_target = nil
+                -- Khi tắt, đảm bảo vận tốc nhân vật về 0 để không bị trôi
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+                end
+            end
         end
     })
 end
@@ -110,7 +114,7 @@ local function CreateUI()
     local InputBox = Instance.new("TextBox", MainFrame)
     InputBox.Size = UDim2.new(0.8, 0, 0, 40)
     InputBox.Position = UDim2.new(0.1, 0, 0, 30)
-    InputBox.PlaceholderText = "Mã độc quyền: emmawatson"
+    InputBox.PlaceholderText = "Nhập emmawatson..."
     InputBox.Parent = MainFrame
 
     local Verify = Instance.new("TextButton", MainFrame)
