@@ -1,70 +1,70 @@
--- [[ EMMA HUB V11 - ANTI-BAN & NO TELEPORT BACK ]] --
+-- [[ EMMA HUB V12 - TWEEN SERVICE EDITION ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
+local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 -- 1. CẤU HÌNH
 local MASTER_KEY = "emmawatson"
+local TWEEN_SPEED = 250 -- Tốc độ bay (Chỉnh từ 200-300 là an toàn nhất)
 
 ------------------------------------------------------------------
--- PHẦN 2: SIÊU AURA VĨNH VIỄN (VÔ GAME LÀ VỤT)
+-- PHẦN 2: HÀM BAY MƯỢT (TWEEN TP) - CHỐNG BAN
 ------------------------------------------------------------------
+local function EmmaTween(targetCFrame)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local root = char.HumanoidRootPart
+    
+    local distance = (targetCFrame.Position - root.Position).Magnitude
+    local info = TweenInfo.new(distance / TWEEN_SPEED, Enum.EasingStyle.Linear)
+    
+    -- Tạo Tween giúp nhân vật bay mượt đến mục tiêu
+    local tween = TweenService:Create(root, info, {CFrame = targetCFrame})
+    tween:Play()
+    return tween
+end
+
+------------------------------------------------------------------
+-- PHẦN 3: SIÊU AURA VÀ AUTO FARM (DÙNG TWEEN)
+------------------------------------------------------------------
+_G.AutoFarm = false
+local current_target = nil
+
 task.spawn(function()
     while true do
         task.wait()
-        pcall(function()
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Tool") then
-                local myRoot = char.HumanoidRootPart
-                for _, mob in ipairs(workspace.Enemies:GetChildren()) do
-                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        local mobRoot = mob.HumanoidRootPart
-                        -- Khoảng cách Aura an toàn
-                        if (mobRoot.Position - myRoot.Position).Magnitude <= 70 then
-                            local net = ReplicatedStorage.Modules.Net
-                            net["RE/RegisterAttack"]:FireServer()
-                            net["RE/RegisterHit"]:FireServer(mobRoot, {{mob, mobRoot}}, nil, nil, "EmmaV11")
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end)
-
-------------------------------------------------------------------
--- PHẦN 3: LOGIC AUTO FARM AN TOÀN (KHÔNG GIẬT VỀ CHỖ CŨ)
-------------------------------------------------------------------
-_G.AutoFarm = false
-local current_target = nil 
-
-local function StartEmmaFarm()
-    task.spawn(function()
-        while _G.AutoFarm do
-            task.wait()
+        if _G.AutoFarm then
             pcall(function()
                 local char = LocalPlayer.Character
                 if not char or not char:FindFirstChild("HumanoidRootPart") then return end
                 
                 if current_target and current_target.Parent and current_target:FindFirstChild("Humanoid") and current_target.Humanoid.Health > 0 then
-                    -- Bay đến quái nhưng không dùng tween rườm rà gây giật
-                    char.HumanoidRootPart.CFrame = current_target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
+                    -- Bay mượt đến sát quái chứ không giật TP
+                    EmmaTween(current_target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0))
+                    
+                    -- Chém Aura (Luôn On)
+                    local currentTool = char:FindFirstChildOfClass("Tool")
+                    if currentTool then
+                        local net = ReplicatedStorage.Modules.Net
+                        net["RE/RegisterAttack"]:FireServer()
+                        net["RE/RegisterHit"]:FireServer(current_target.HumanoidRootPart, {{current_target, current_target.HumanoidRootPart}}, nil, nil, "EmmaV12")
+                    end
                 else
                     current_target = nil
                     for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                         if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                            current_target = mob 
-                            break 
+                            current_target = mob
+                            break
                         end
                     end
                 end
             end)
         end
-        -- KHI TẮT VÒNG LẶP: KHÔNG CÓ LỆNH TP VỀ CHỖ CŨ -> NHÂN VẬT ĐỨNG YÊN
-    end)
-end
+    end
+end)
 
 ------------------------------------------------------------------
 -- PHẦN 4: GIAO DIỆN MENU (NIGHT UI)
@@ -72,28 +72,33 @@ end
 local function LoadMainScript()
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
     local Window = Library:NewWindow({
-        Title = "Emma Hub [V11 ANTI-BAN]",
-        Description = "Aura Always On | Safe Farm | Mã: emmawatson",
+        Title = "Emma Hub [V12 TWEEN]",
+        Description = "Bay mượt chống Ban! Mã: emmawatson",
         Scale = game:GetService("UserInputService").TouchEnabled and UDim2.fromOffset(480, 360) or UDim2.fromOffset(580, 430),
     })
 
     local tab = Window:AddTab({ Title = "Farm Control", Icon = "84348960772548" })
 
     tab:AddToggle({
-        Title = "Auto Farm (No Back-TP)",
+        Title = "Bật Auto Farm (Bay Mượt)",
         Default = false,
         Callback = function(v)
             _G.AutoFarm = v
-            if v then 
-                StartEmmaFarm() 
-            else 
+            if not v then 
                 current_target = nil
-                -- Khi tắt, đảm bảo vận tốc nhân vật về 0 để không bị trôi
+                -- Ép dừng vận tốc để nhân vật đứng im tại chỗ khi tắt
                 if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
                 end
             end
         end
+    })
+    
+    -- Chỉnh tốc độ bay
+    tab:AddSlider({
+        Title = "Tốc độ bay (Tween Speed)",
+        Min = 100, Max = 500, Default = 250,
+        Callback = function(v) TWEEN_SPEED = v end
     })
 end
 
@@ -114,13 +119,13 @@ local function CreateUI()
     local InputBox = Instance.new("TextBox", MainFrame)
     InputBox.Size = UDim2.new(0.8, 0, 0, 40)
     InputBox.Position = UDim2.new(0.1, 0, 0, 30)
-    InputBox.PlaceholderText = "Nhập emmawatson..."
+    InputBox.PlaceholderText = "Mã độc quyền: emmawatson"
     InputBox.Parent = MainFrame
 
     local Verify = Instance.new("TextButton", MainFrame)
     Verify.Size = UDim2.new(0.8, 0, 0, 40)
     Verify.Position = UDim2.new(0.1, 0, 0, 80)
-    Verify.Text = "XÁC NHẬN"
+    Verify.Text = "KÍCH HOẠT"
     Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
     Verify.Parent = MainFrame
 
