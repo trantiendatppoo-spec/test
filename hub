@@ -1,4 +1,4 @@
--- [[ EMMA HUB V6 - SIÊU AURA & AUTO FARM FULL ]] --
+-- [[ EMMA HUB V8 - TARGET LOCK & WEAPON FREEDOM ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,43 +9,47 @@ local LocalPlayer = Players.LocalPlayer
 local MASTER_KEY = "emmawatson"
 
 ------------------------------------------------------------------
--- PHẦN 2: LOGIC FARM "VẢ QUÁI" (AURA + TP + EQUIP)
+-- PHẦN 2: LOGIC FARM "KHÓA MỤC TIÊU" (AURA + TP + SMART LOCK)
 ------------------------------------------------------------------
 _G.AutoFarm = false
+local current_target = nil -- Biến khóa mục tiêu
 
--- Hàm tự động cầm vũ khí
-local function EquipWeapon()
-    local tool = LocalPlayer.Backpack:FindFirstChild("Melee") or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
-    if tool then
-        LocalPlayer.Character.Humanoid:EquipTool(tool)
-    end
-end
-
--- Vòng lặp Farm & Aura
+-- Vòng lặp Farm thông minh
 local function StartEmmaFarm()
     task.spawn(function()
         while _G.AutoFarm do
             task.wait()
             pcall(function()
-                local enemies = workspace.Enemies:GetChildren()
                 local myRoot = LocalPlayer.Character.HumanoidRootPart
+                local currentTool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 
-                for _, mob in ipairs(enemies) do
-                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        -- 1. Dịch chuyển đến quái
-                        myRoot.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0)
-                        
-                        -- 2. Cầm vũ khí
-                        EquipWeapon()
-                        
-                        -- 3. Aura chém liên tục
+                -- KIỂM TRA MỤC TIÊU CŨ
+                if current_target and current_target.Parent and current_target:FindFirstChild("Humanoid") and current_target.Humanoid.Health > 0 then
+                    -- Nếu quái cũ còn sống, chỉ tập trung vào nó
+                    local mobRoot = current_target.HumanoidRootPart
+                    
+                    -- Dịch chuyển và giữ vị trí (Không nhảy lung tung)
+                    myRoot.CFrame = mobRoot.CFrame * CFrame.new(0, 15, 0)
+                    
+                    -- Aura chém
+                    if currentTool then
                         local net = ReplicatedStorage.Modules.Net
                         net["RE/RegisterAttack"]:FireServer()
-                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV6")
-                        
-                        -- 4. Gom quái (Bring Mob)
-                        mob.HumanoidRootPart.CanCollide = false
-                        mob.HumanoidRootPart.CFrame = myRoot.CFrame * CFrame.new(0, -20, 0)
+                        net["RE/RegisterHit"]:FireServer(mobRoot, {{current_target, mobRoot}}, nil, nil, "EmmaV8")
+                    end
+                    
+                    -- Kéo quái lại gần
+                    mobRoot.CanCollide = false
+                    mobRoot.CFrame = myRoot.CFrame * CFrame.new(0, -15, 0)
+                else
+                    -- Nếu quái chết hoặc chưa có mục tiêu, đi tìm con mới
+                    current_target = nil
+                    local enemies = workspace.Enemies:GetChildren()
+                    for _, mob in ipairs(enemies) do
+                        if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                            current_target = mob -- Khóa con này lại
+                            break 
+                        end
                     end
                 end
             end)
@@ -59,7 +63,7 @@ end
 local function LoadMainScript()
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
     local Window = Library:NewWindow({
-        Title = "Emma Hub [ULTIMATE]",
+        Title = "Emma Hub [V8 STABLE]",
         Description = "Mã độc quyền: emmawatson",
         Scale = game:GetService("UserInputService").TouchEnabled and UDim2.fromOffset(480, 360) or UDim2.fromOffset(580, 430),
     })
@@ -67,11 +71,12 @@ local function LoadMainScript()
     local tab = Window:AddTab({ Title = "Auto Farm", Icon = "84348960772548" })
 
     tab:AddToggle({
-        Title = "Bật Auto Farm & Aura",
+        Title = "Bật Auto Farm (Target Lock)",
         Default = false,
         Callback = function(v)
             _G.AutoFarm = v
-            if v then StartEmmaFarm() end -- Chạy ngay và luôn
+            if not v then current_target = nil end -- Reset mục tiêu khi tắt
+            if v then StartEmmaFarm() end 
         end
     })
 end
@@ -92,13 +97,13 @@ local function CreateUI()
 
     local InputBox = Instance.new("TextBox", MainFrame)
     InputBox.Size = UDim2.new(0.8, 0, 0, 40)
-    InputBox.Position = UDim2.new(0.1, 0, 0.3, 0)
+    InputBox.Position = UDim2.new(0.1, 0, 0, 30)
     InputBox.PlaceholderText = "Nhập emmawatson..."
     InputBox.Parent = MainFrame
 
     local Verify = Instance.new("TextButton", MainFrame)
     Verify.Size = UDim2.new(0.8, 0, 0, 40)
-    Verify.Position = UDim2.new(0.1, 0, 0.6, 0)
+    Verify.Position = UDim2.new(0.1, 0, 0, 80)
     Verify.Text = "XÁC NHẬN"
     Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
     Verify.Parent = MainFrame
