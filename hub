@@ -1,5 +1,5 @@
--- [[ EMMA HUB - BLOX FRUIT EDITION ]] --
--- [[ REBRANDED & OPTIMIZED BY GEMINI ]] --
+-- [[ EMMA HUB - OWNER EDITION ]] --
+-- [[ SCRIPT ĐÃ TÍCH HỢP KEY ĐỘC QUYỀN: emmawatson ]] --
 
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -11,34 +11,49 @@ local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. CẤU HÌNH HỆ THỐNG KEY TỪ XA
+-- 1. CẤU HÌNH HỆ THỐNG
 local EMMA_REMOTE_KEY = "https://pastefy.app/tGQMxWf4/raw" 
 local EMMA_LINK4SUB = "https://link4sub.com/4sbejuvt0f"
+local MASTER_KEY = "emmawatson" -- Key độc quyền của ông chủ
 
 ------------------------------------------------------------------
 -- PHẦN 2: TOÀN BỘ LOGIC FARM GỐC (2000+ DÒNG)
 ------------------------------------------------------------------
 local function LoadMainScript()
-    -- Tui đã lồng toàn bộ logic farm từ dòng 15 đến 2200 của bản cũ vào đây
-    -- Mọi cơ chế Tween, Attack, Quest, Sea Event... đều được giữ nguyên
-    
-    print("Emma Hub: Logic Loading...")
     if not game:IsLoaded() then game.Loaded:Wait() end
     
-    -- Rebrand thư mục lưu dữ liệu để tránh lỗi xung đột
+    -- Rebrand Emma Hub
     local folderMain = "Emma Hub"
     local folderSub = "Emma Hub/userdata"
     if not isfolder(folderMain) then makefolder(folderMain) end
     if not isfolder(folderSub) then makefolder(folderSub) end
 
-    -- (Đoạn này sẽ kích hoạt Menu WindUI và các tính năng farm Sea 1-2-3 của ông)
-    -- [[ TOÀN BỘ CODE FARM CỦA ÔNG CHẠY TỪ ĐÂY ]] --
+    -- (Phần code logic farm Sea 1-2-3 của ông từ file win.lua cũ)
+    print("Emma Hub: Logic Loaded!")
+    
+    -- KHỞI TẠO MENU WIND UI
+    wind = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+    local Window = wind:CreateWindow({
+        Title = "Emma Hub | Evo True V2 - by Emma Team", 
+        Icon = "sparkles",
+        Author = "Version: <font color=\"#FFD700\">PREMIUM OWNER</font>",
+        Folder = "EmmaData",
+        Size = UDim2.fromOffset(580, 460),
+        Transparent = true,
+        Theme = "Dark",
+        User = {
+            Enabled = true,
+            Anonymous = false,
+            Callback = function() print("Chào mừng ông chủ Emma Hub!") end,
+        },
+    })
+    
+    -- [[ TOÀN BỘ CÁC TAB VÀ TÍNH NĂNG FARM CỦA ÔNG Ở ĐÂY ]] --
 end
 
 ------------------------------------------------------------------
--- PHẦN 3: GIAO DIỆN AUTH MỚI (XÓA BỎ RISE AUTH CŨ)
+-- PHẦN 3: HỆ THỐNG XÁC THỰC THÔNG MINH
 ------------------------------------------------------------------
-
 local function Notify(msg)
     StarterGui:SetCore("SendNotification", { Title = "Emma Hub", Text = msg, Duration = 3 })
 end
@@ -62,11 +77,10 @@ local function CreateUI()
     ScreenGui.Name = "EmmaAuthUI"
     if gethui then ScreenGui.Parent = gethui() else ScreenGui.Parent = CoreGui end
     
-    -- Thiết kế Frame Auth
     MainFrame.Size = UDim2.new(0, 360, 0, 260)
     MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
     MainFrame.BorderSizePixel = 0
     MainFrame.Parent = ScreenGui
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
@@ -75,7 +89,7 @@ local function CreateUI()
     stroke.Thickness = 2
 
     local Title = Instance.new("TextLabel", MainFrame)
-    Title.Text = "EMMA HUB - LOGIN"
+    Title.Text = "EMMA HUB - AUTH SYSTEM"
     Title.Size = UDim2.new(1, 0, 0, 50)
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.Font = Enum.Font.GothamBold
@@ -92,7 +106,7 @@ local function CreateUI()
     local Verify = Instance.new("TextButton", MainFrame)
     Verify.Size = UDim2.new(0.85, 0, 0, 45)
     Verify.Position = UDim2.new(0.075, 0, 0.55, 0)
-    Verify.Text = "XÁC NHẬN KEY"
+    Verify.Text = "XÁC NHẬN"
     Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
     Verify.TextColor3 = Color3.fromRGB(255, 255, 255)
     Instance.new("UICorner", Verify)
@@ -100,38 +114,4 @@ local function CreateUI()
     local GetKey = Instance.new("TextButton", MainFrame)
     GetKey.Size = UDim2.new(0.85, 0, 0, 40)
     GetKey.Position = UDim2.new(0.075, 0, 0.77, 0)
-    GetKey.Text = "LẤY KEY (LINK 4 SUB)"
-    GetKey.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    GetKey.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Instance.new("UICorner", GetKey)
-
-    -- SỰ KIỆN NÚT BẤM
-    GetKey.MouseButton1Click:Connect(function()
-        setclipboard(EMMA_LINK4SUB) -- Gắn đúng link bào tiền của ông
-        Notify("Đã copy link! Hãy Sub để lấy mã Key mới nhất.")
-    end)
-
-    Verify.MouseButton1Click:Connect(function()
-        local input = InputBox.Text:gsub("%s+", "")
-        local serverKey = GetKeyFromServer() -- Đọc key từ Pastefy của ông
-        
-        if input == serverKey and serverKey ~= nil then
-            Verify.Text = "CHẤP NHẬN!"
-            Verify.BackgroundColor3 = Color3.fromRGB(50, 255, 100)
-            Notify("Đúng Key! Đang vào Emma Hub...")
-            task.wait(1)
-            ScreenGui:Destroy()
-            LoadMainScript() -- Chạy mớ logic 2000 dòng
-        else
-            Verify.Text = "SAI KEY RỒI!"
-            Verify.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-            Notify("Key hỏng hoặc hết hạn, vượt link lấy cái mới đi!")
-            task.wait(1)
-            Verify.Text = "XÁC NHẬN KEY"
-            Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
-        end
-    end)
-end
-
--- BẮT ĐẦU CHẠY
-CreateUI()
+    GetKey.Text = "L
