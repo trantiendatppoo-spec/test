@@ -1,109 +1,120 @@
--- [[ EMMA HUB V12 - TWEEN SERVICE EDITION ]] --
+-- [[ EMMA HUB V13 - DEFINITIVE EDITION ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. CẤU HÌNH
+-- 1. CONFIGURACIÓN
 local MASTER_KEY = "emmawatson"
-local TWEEN_SPEED = 250 -- Tốc độ bay (Chỉnh từ 200-300 là an toàn nhất)
-
-------------------------------------------------------------------
--- PHẦN 2: HÀM BAY MƯỢT (TWEEN TP) - CHỐNG BAN
-------------------------------------------------------------------
-local function EmmaTween(targetCFrame)
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local root = char.HumanoidRootPart
-    
-    local distance = (targetCFrame.Position - root.Position).Magnitude
-    local info = TweenInfo.new(distance / TWEEN_SPEED, Enum.EasingStyle.Linear)
-    
-    -- Tạo Tween giúp nhân vật bay mượt đến mục tiêu
-    local tween = TweenService:Create(root, info, {CFrame = targetCFrame})
-    tween:Play()
-    return tween
-end
-
-------------------------------------------------------------------
--- PHẦN 3: SIÊU AURA VÀ AUTO FARM (DÙNG TWEEN)
-------------------------------------------------------------------
+local TWEEN_SPEED = 200
 _G.AutoFarm = false
-local current_target = nil
+_G.Aura = true
 
+------------------------------------------------------------------
+-- PHẦN 2: AUTO BUSO HAKI & NOCLIP
+------------------------------------------------------------------
+-- Auto Haki
 task.spawn(function()
     while true do
-        task.wait()
-        if _G.AutoFarm then
-            pcall(function()
-                local char = LocalPlayer.Character
-                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-                
-                if current_target and current_target.Parent and current_target:FindFirstChild("Humanoid") and current_target.Humanoid.Health > 0 then
-                    -- Bay mượt đến sát quái chứ không giật TP
-                    EmmaTween(current_target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0))
-                    
-                    -- Chém Aura (Luôn On)
-                    local currentTool = char:FindFirstChildOfClass("Tool")
-                    if currentTool then
-                        local net = ReplicatedStorage.Modules.Net
-                        net["RE/RegisterAttack"]:FireServer()
-                        net["RE/RegisterHit"]:FireServer(current_target.HumanoidRootPart, {{current_target, current_target.HumanoidRootPart}}, nil, nil, "EmmaV12")
-                    end
-                else
-                    current_target = nil
-                    for _, mob in ipairs(workspace.Enemies:GetChildren()) do
-                        if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                            current_target = mob
-                            break
-                        end
-                    end
-                end
-            end)
+        task.wait(1)
+        if _G.Aura or _G.AutoFarm then
+            local hasHaki = LocalPlayer.Character:FindFirstChild("HasBuso")
+            if not hasHaki then
+                ReplicatedStorage.Remotes.CommF_:InvokeServer("Buso")
+            end
+        end
+    end
+end)
+
+-- Noclip (Atraviesa paredes)
+RunService.Stepped:Connect(function()
+    if _G.AutoFarm and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
         end
     end
 end)
 
 ------------------------------------------------------------------
--- PHẦN 4: GIAO DIỆN MENU (NIGHT UI)
+-- PHẦN 3: SIÊU AURA VÀ TWEEN FARM
 ------------------------------------------------------------------
-local function LoadMainScript()
-    local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
-    local Window = Library:NewWindow({
-        Title = "Emma Hub [V12 TWEEN]",
-        Description = "Bay mượt chống Ban! Mã: emmawatson",
-        Scale = game:GetService("UserInputService").TouchEnabled and UDim2.fromOffset(480, 360) or UDim2.fromOffset(580, 430),
-    })
-
-    local tab = Window:AddTab({ Title = "Farm Control", Icon = "84348960772548" })
-
-    tab:AddToggle({
-        Title = "Bật Auto Farm (Bay Mượt)",
-        Default = false,
-        Callback = function(v)
-            _G.AutoFarm = v
-            if not v then 
-                current_target = nil
-                -- Ép dừng vận tốc để nhân vật đứng im tại chỗ khi tắt
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+local function StartEmmaFarm()
+    task.spawn(function()
+        while true do
+            task.wait()
+            pcall(function()
+                local char = LocalPlayer.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                
+                -- SIÊU AURA TRỰC TIẾP (Luôn quét quái xung quanh)
+                for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                        local dist = (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                        if dist <= 75 then
+                            local tool = char:FindFirstChildOfClass("Tool")
+                            if tool then
+                                ReplicatedStorage.Modules.Net["RE/RegisterAttack"]:FireServer()
+                                ReplicatedStorage.Modules.Net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV13")
+                            end
+                        end
+                    end
                 end
-            end
+
+                -- LOGIC FARM (Solo si está activado)
+                if _G.AutoFarm then
+                    local target = nil
+                    for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+                        if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                            target = mob
+                            break
+                        end
+                    end
+
+                    if target then
+                        local targetCF = target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
+                        local root = char.HumanoidRootPart
+                        local distance = (targetCF.Position - root.Position).Magnitude
+                        
+                        -- Tween mượt mà
+                        local tween = TweenService:Create(root, TweenInfo.new(distance / TWEEN_SPEED, Enum.EasingStyle.Linear), {CFrame = targetCF})
+                        tween:Play()
+                    end
+                end
+            end)
         end
-    })
-    
-    -- Chỉnh tốc độ bay
-    tab:AddSlider({
-        Title = "Tốc độ bay (Tween Speed)",
-        Min = 100, Max = 500, Default = 250,
-        Callback = function(v) TWEEN_SPEED = v end
-    })
+    end)
 end
 
 ------------------------------------------------------------------
--- PHẦN 5: AUTH UI
+-- PHẦN 4: GIAO DIỆN MENU
+------------------------------------------------------------------
+local function LoadMainScript()
+    StartEmmaFarm() -- Arranca el motor de Aura y Farm
+    
+    local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
+    local Window = Library:NewWindow({
+        Title = "Emma Hub [V13 GOD]",
+        Description = "Haki, Noclip & Aura ON | Mã: emmawatson",
+    })
+
+    local tab = Window:AddTab({ Title = "Farm & Haki", Icon = "84348960772548" })
+
+    tab:AddToggle({
+        Title = "Auto Farm (Tween + Noclip)",
+        Default = false,
+        Callback = function(v) _G.AutoFarm = v end
+    })
+    
+    print("Emma Hub V13: Haki activado, Noclip listo y Aura pegando duro.")
+end
+
+------------------------------------------------------------------
+-- PHẦN 5: LOGIN UI
 ------------------------------------------------------------------
 local function CreateUI()
     local ScreenGui = Instance.new("ScreenGui")
@@ -119,13 +130,13 @@ local function CreateUI()
     local InputBox = Instance.new("TextBox", MainFrame)
     InputBox.Size = UDim2.new(0.8, 0, 0, 40)
     InputBox.Position = UDim2.new(0.1, 0, 0, 30)
-    InputBox.PlaceholderText = "Mã độc quyền: emmawatson"
+    InputBox.PlaceholderText = "Mã: emmawatson"
     InputBox.Parent = MainFrame
 
     local Verify = Instance.new("TextButton", MainFrame)
     Verify.Size = UDim2.new(0.8, 0, 0, 40)
     Verify.Position = UDim2.new(0.1, 0, 0, 80)
-    Verify.Text = "KÍCH HOẠT"
+    Verify.Text = "ACTIVAR EMMA HUB"
     Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
     Verify.Parent = MainFrame
 
