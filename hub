@@ -1,4 +1,4 @@
--- [[ EMMA HUB V13 - DEFINITIVE EDITION ]] --
+-- [[ EMMA HUB V14 - BẢN FULL KHÔNG THIẾU THỨ GÌ ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
 local TweenService = game:GetService("TweenService")
@@ -7,20 +7,33 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. CONFIGURACIÓN
+-- 1. CẤU HÌNH
 local MASTER_KEY = "emmawatson"
-local TWEEN_SPEED = 200
+local TWEEN_SPEED = 220 
 _G.AutoFarm = false
 _G.Aura = true
+_G.WeaponType = "Melee" -- Mặc định là đấm, ông có thể chọn trong menu
 
 ------------------------------------------------------------------
--- PHẦN 2: AUTO BUSO HAKI & NOCLIP
+-- PHẦN 2: CÁC HÀM HỖ TRỢ (HAKI, NOCLIP, EQUIP)
 ------------------------------------------------------------------
+-- Hàm tự cầm vũ khí thông minh
+local function AutoEquip()
+    pcall(function()
+        if _G.AutoFarm then
+            local tool = LocalPlayer.Backpack:FindFirstChild(_G.WeaponType) or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
+            if tool and not LocalPlayer.Character:FindFirstChild(tool.Name) then
+                LocalPlayer.Character.Humanoid:EquipTool(tool)
+            end
+        end
+    end)
+end
+
 -- Auto Haki
 task.spawn(function()
     while true do
         task.wait(1)
-        if _G.Aura or _G.AutoFarm then
+        if _G.AutoFarm then
             local hasHaki = LocalPlayer.Character:FindFirstChild("HasBuso")
             if not hasHaki then
                 ReplicatedStorage.Remotes.CommF_:InvokeServer("Buso")
@@ -29,13 +42,11 @@ task.spawn(function()
     end
 end)
 
--- Noclip (Atraviesa paredes)
+-- Noclip xuyên tường
 RunService.Stepped:Connect(function()
     if _G.AutoFarm and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
         end
     end
 end)
@@ -51,7 +62,7 @@ local function StartEmmaFarm()
                 local char = LocalPlayer.Character
                 if not char or not char:FindFirstChild("HumanoidRootPart") then return end
                 
-                -- SIÊU AURA TRỰC TIẾP (Luôn quét quái xung quanh)
+                -- SIÊU AURA
                 for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                     if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
                         local dist = (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
@@ -59,14 +70,16 @@ local function StartEmmaFarm()
                             local tool = char:FindFirstChildOfClass("Tool")
                             if tool then
                                 ReplicatedStorage.Modules.Net["RE/RegisterAttack"]:FireServer()
-                                ReplicatedStorage.Modules.Net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV13")
+                                ReplicatedStorage.Modules.Net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV14")
                             end
                         end
                     end
                 end
 
-                -- LOGIC FARM (Solo si está activado)
+                -- LOGIC FARM + EQUIP WEAPON
                 if _G.AutoFarm then
+                    AutoEquip() -- Luôn kiểm tra để cầm vũ khí trên tay
+                    
                     local target = nil
                     for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                         if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
@@ -80,7 +93,6 @@ local function StartEmmaFarm()
                         local root = char.HumanoidRootPart
                         local distance = (targetCF.Position - root.Position).Magnitude
                         
-                        -- Tween mượt mà
                         local tween = TweenService:Create(root, TweenInfo.new(distance / TWEEN_SPEED, Enum.EasingStyle.Linear), {CFrame = targetCF})
                         tween:Play()
                     end
@@ -91,30 +103,35 @@ local function StartEmmaFarm()
 end
 
 ------------------------------------------------------------------
--- PHẦN 4: GIAO DIỆN MENU
+-- PHẦN 4: GIAO DIỆN MENU (NIGHT UI)
 ------------------------------------------------------------------
 local function LoadMainScript()
-    StartEmmaFarm() -- Arranca el motor de Aura y Farm
+    StartEmmaFarm() 
     
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
     local Window = Library:NewWindow({
-        Title = "Emma Hub [V13 GOD]",
-        Description = "Haki, Noclip & Aura ON | Mã: emmawatson",
+        Title = "Emma Hub [V14 FULL]",
+        Description = "Đầy đủ: Farm, Haki, Noclip, Equip! Mã: emmawatson",
     })
 
-    local tab = Window:AddTab({ Title = "Farm & Haki", Icon = "84348960772548" })
+    local tab = Window:AddTab({ Title = "Main Farm", Icon = "84348960772548" })
+
+    tab:AddDropdown({
+        Title = "Chọn vũ khí để Farm",
+        Values = {"Melee", "Sword"},
+        Default = "Melee",
+        Callback = function(v) _G.WeaponType = v end
+    })
 
     tab:AddToggle({
-        Title = "Auto Farm (Tween + Noclip)",
+        Title = "Bật Auto Farm Tổng Hợp",
         Default = false,
         Callback = function(v) _G.AutoFarm = v end
     })
-    
-    print("Emma Hub V13: Haki activado, Noclip listo y Aura pegando duro.")
 end
 
 ------------------------------------------------------------------
--- PHẦN 5: LOGIN UI
+-- PHẦN 5: AUTH UI
 ------------------------------------------------------------------
 local function CreateUI()
     local ScreenGui = Instance.new("ScreenGui")
@@ -136,8 +153,9 @@ local function CreateUI()
     local Verify = Instance.new("TextButton", MainFrame)
     Verify.Size = UDim2.new(0.8, 0, 0, 40)
     Verify.Position = UDim2.new(0.1, 0, 0, 80)
-    Verify.Text = "ACTIVAR EMMA HUB"
+    Verify.Text = "KÍCH HOẠT V14"
     Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
+    Verify.TextColor3 = Color3.fromRGB(255, 255, 255)
     Verify.Parent = MainFrame
 
     Verify.MouseButton1Click:Connect(function()
