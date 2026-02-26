@@ -1,96 +1,100 @@
--- [[ EMMA HUB V16 - FIX AUTO FARM LEVEL ]] --
+-- [[ EMMA HUB V14 - BẢN FULL KHÔNG THIẾU THỨ GÌ ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
+local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 -- 1. CẤU HÌNH
 local MASTER_KEY = "emmawatson"
-_G.AutoFarmLevel = false
+local TWEEN_SPEED = 220 
+_G.AutoFarm = false
+_G.Aura = true
+_G.WeaponType = "Melee" -- Mặc định là đấm, ông có thể chọn trong menu
 
 ------------------------------------------------------------------
--- PHẦN 2: BÊ NGUYÊN LOGIC NHẬN QUEST XỊN CỦA MINH NGHĨA
+-- PHẦN 2: CÁC HÀM HỖ TRỢ (HAKI, NOCLIP, EQUIP)
 ------------------------------------------------------------------
-local Quests = require(ReplicatedStorage:WaitForChild("Quests"))
-local GuideModule = require(ReplicatedStorage:WaitForChild("GuideModule"))
+-- Hàm tự cầm vũ khí thông minh
+local function AutoEquip()
+    pcall(function()
+        if _G.AutoFarm then
+            local tool = LocalPlayer.Backpack:FindFirstChild(_G.WeaponType) or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
+            if tool and not LocalPlayer.Character:FindFirstChild(tool.Name) then
+                LocalPlayer.Character.Humanoid:EquipTool(tool)
+            end
+        end
+    end)
+end
 
-local function GetQuestData()
-    local level = LocalPlayer.Data.Level.Value
-    local name, quest, id = "", "", 0
-    local levelReq = 0
-    
-    for i, v in next, Quests do
-        for id2, v2 in next, v do
-            if level >= v2.LevelReq and v2.LevelReq >= levelReq then
-                levelReq = v2.LevelReq
-                name, quest, id = next(v2.Task), i, id2
+-- Auto Haki
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if _G.AutoFarm then
+            local hasHaki = LocalPlayer.Character:FindFirstChild("HasBuso")
+            if not hasHaki then
+                ReplicatedStorage.Remotes.CommF_:InvokeServer("Buso")
             end
         end
     end
-    return name, quest, id
-end
+end)
 
-------------------------------------------------------------------
--- PHẦN 3: SIÊU AURA & AUTO EQUIP (BÊ TỪ SOURCE XỊN)
-------------------------------------------------------------------
-task.spawn(function()
-    while task.wait() do
-        if _G.AutoFarmLevel then
-            pcall(function()
-                local char = LocalPlayer.Character
-                -- Tự động cầm vũ khí chém
-                local tool = char:FindFirstChildOfClass("Tool") or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
-                if tool and not char:FindFirstChild(tool.Name) then
-                    char.Humanoid:EquipTool(tool)
-                end
-                
-                -- Aura đánh quái chuẩn Remote
-                for _, mob in ipairs(workspace.Enemies:GetChildren()) do
-                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        if (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude <= 70 then
-                            ReplicatedStorage.Modules.Net["RE/RegisterAttack"]:FireServer()
-                            ReplicatedStorage.Modules.Net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV16")
-                        end
-                    end
-                end
-            end)
+-- Noclip xuyên tường
+RunService.Stepped:Connect(function()
+    if _G.AutoFarm and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
         end
     end
 end)
 
 ------------------------------------------------------------------
--- PHẦN 4: VÒNG LẶP FARM LEVEL (DỊCH CHUYỂN & NHẬN QUEST)
+-- PHẦN 3: SIÊU AURA VÀ TWEEN FARM
 ------------------------------------------------------------------
-local function StartEmmaFarmLevel()
+local function StartEmmaFarm()
     task.spawn(function()
-        while _G.AutoFarmLevel do
+        while true do
             task.wait()
             pcall(function()
-                local mobName, questName, questID = GetQuestData()
                 local char = LocalPlayer.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
                 
-                if not LocalPlayer.PlayerGui.Main.Quest.Visible then
-                    -- Bay về NPC nhận nhiệm vụ
-                    local npcName = GuideModule.Data.LastClosestNPC
-                    local npc = workspace.NPCs:FindFirstChild(npcName) or ReplicatedStorage.NPCs:FindFirstChild(npcName)
-                    if npc then
-                        char.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 2)
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("StartQuest", questName, questID)
-                    end
-                else
-                    -- Bay ra bãi quái
-                    local targetMob = workspace.Enemies:FindFirstChild(mobName)
-                    if targetMob and targetMob:FindFirstChild("HumanoidRootPart") then
-                        char.HumanoidRootPart.CFrame = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
-                    else
-                        -- Nếu bãi quái trống thì bay về spawn quái
-                        for _, spawn in ipairs(workspace._WorldOrigin.EnemySpawns:GetChildren()) do
-                            if spawn.Name:find(mobName) then
-                                char.HumanoidRootPart.CFrame = spawn.CFrame * CFrame.new(0, 15, 0)
-                                break
+                -- SIÊU AURA
+                for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                        local dist = (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                        if dist <= 75 then
+                            local tool = char:FindFirstChildOfClass("Tool")
+                            if tool then
+                                ReplicatedStorage.Modules.Net["RE/RegisterAttack"]:FireServer()
+                                ReplicatedStorage.Modules.Net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV14")
                             end
                         end
+                    end
+                end
+
+                -- LOGIC FARM + EQUIP WEAPON
+                if _G.AutoFarm then
+                    AutoEquip() -- Luôn kiểm tra để cầm vũ khí trên tay
+                    
+                    local target = nil
+                    for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+                        if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                            target = mob
+                            break
+                        end
+                    end
+
+                    if target then
+                        local targetCF = target.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0)
+                        local root = char.HumanoidRootPart
+                        local distance = (targetCF.Position - root.Position).Magnitude
+                        
+                        local tween = TweenService:Create(root, TweenInfo.new(distance / TWEEN_SPEED, Enum.EasingStyle.Linear), {CFrame = targetCF})
+                        tween:Play()
                     end
                 end
             end)
@@ -99,21 +103,67 @@ local function StartEmmaFarmLevel()
 end
 
 ------------------------------------------------------------------
--- PHẦN 5: GIAO DIỆN & AUTH (GIỮ NGUYÊN)
+-- PHẦN 4: GIAO DIỆN MENU (NIGHT UI)
 ------------------------------------------------------------------
 local function LoadMainScript()
+    StartEmmaFarm() 
+    
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
-    local Window = Library:NewWindow({Title = "Emma Hub V16", Description = "Fix Farm Level Chuẩn 100%"})
-    local tab = Window:AddTab({ Title = "Farm", Icon = "84348960772548" })
+    local Window = Library:NewWindow({
+        Title = "Emma Hub [V14 FULL]",
+        Description = "Đầy đủ: Farm, Haki, Noclip, Equip! Mã: emmawatson",
+    })
+
+    local tab = Window:AddTab({ Title = "Main Farm", Icon = "84348960772548" })
+
+    tab:AddDropdown({
+        Title = "Chọn vũ khí để Farm",
+        Values = {"Melee", "Sword"},
+        Default = "Melee",
+        Callback = function(v) _G.WeaponType = v end
+    })
 
     tab:AddToggle({
-        Title = "Auto Farm Level",
+        Title = "Bật Auto Farm Tổng Hợp",
         Default = false,
-        Callback = function(v)
-            _G.AutoFarmLevel = v
-            if v then StartEmmaFarmLevel() end
-        end
+        Callback = function(v) _G.AutoFarm = v end
     })
 end
 
--- CreateUI Login giữ nguyên như cũ
+------------------------------------------------------------------
+-- PHẦN 5: AUTH UI
+------------------------------------------------------------------
+local function CreateUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 360, 0, 200)
+    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    MainFrame.Parent = ScreenGui
+    Instance.new("UICorner", MainFrame)
+
+    local InputBox = Instance.new("TextBox", MainFrame)
+    InputBox.Size = UDim2.new(0.8, 0, 0, 40)
+    InputBox.Position = UDim2.new(0.1, 0, 0, 30)
+    InputBox.PlaceholderText = "Mã: emmawatson"
+    InputBox.Parent = MainFrame
+
+    local Verify = Instance.new("TextButton", MainFrame)
+    Verify.Size = UDim2.new(0.8, 0, 0, 40)
+    Verify.Position = UDim2.new(0.1, 0, 0, 80)
+    Verify.Text = "KÍCH HOẠT V14"
+    Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
+    Verify.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Verify.Parent = MainFrame
+
+    Verify.MouseButton1Click:Connect(function()
+        if InputBox.Text:lower() == MASTER_KEY then
+            ScreenGui:Destroy()
+            LoadMainScript()
+        end
+    end)
+end
+
+CreateUI()
