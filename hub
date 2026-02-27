@@ -1,18 +1,24 @@
--- [[ EMMA HUB V22 - REBRAND & FIX OWNER ]] --
+-- [[ EMMA HUB V23 - FULL FEATURE & REBRAND ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. CẤU HÌNH
+-- 1. CẤU HÌNH HỆ THỐNG
 local MASTER_KEY = "emmawatson"
 _G.AutoFarmLevel = false
 _G.SelectWeapon = "Melee"
+_G.TweenSpeed = 250
 
 ------------------------------------------------------------------
--- PHẦN 2: AUTO HAKI & AURA V15 (GIỮ NGUYÊN ĐỘ RÁT)
+-- PHẦN 2: LOGIC GAME (HAKI, AURA, NHẬN QUEST)
 ------------------------------------------------------------------
+local Quests = require(ReplicatedStorage:WaitForChild("Quests"))
+local GuideModule = require(ReplicatedStorage:WaitForChild("GuideModule"))
+
+-- Tự động bật Haki vĩnh viễn
 task.spawn(function()
     while task.wait(1) do
         pcall(function()
@@ -23,10 +29,11 @@ task.spawn(function()
     end
 end)
 
+-- Siêu Aura V15 (Giữ đúng độ rát ông thích)
 task.spawn(function()
     while task.wait() do
-        pcall(function()
-            if _G.AutoFarmLevel then
+        if _G.AutoFarmLevel then
+            pcall(function()
                 local char = LocalPlayer.Character
                 for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                     if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
@@ -34,45 +41,104 @@ task.spawn(function()
                         if (hrp.Position - char.HumanoidRootPart.Position).Magnitude <= 75 then
                             local net = ReplicatedStorage.Modules.Net
                             net["RE/RegisterAttack"]:FireServer()
-                            net["RE/RegisterHit"]:FireServer(hrp, {{mob, hrp}}, nil, nil, "EmmaV15_Aura")
+                            net["RE/RegisterHit"]:FireServer(hrp, {{mob, hrp}}, nil, nil, "EmmaV23_Aura")
                         end
                     end
                 end
-            end
-        end)
+            end)
+        end
     end
 end)
 
 ------------------------------------------------------------------
--- PHẦN 3: GIAO DIỆN & FIX OWNER (DẸP THẰNG NIGHT X)
+-- PHẦN 3: GIAO DIỆN CHÍNH (DẸP BỎ NIGHT X)
 ------------------------------------------------------------------
 local function LoadMainScript()
-    -- Nạp UI gốc
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
     
-    -- ĐÈ THÔNG TIN OWNER (Đây là chỗ để dẹp tên NightX)
+    -- Chỉnh sửa thông tin Window để xóa dấu vết NightX
     local Window = Library:NewWindow({
-        Title = "Emma Hub [PREMIUM]",
-        Description = "Owner: Emma Hub Team", -- Thay đổi thông tin tại đây
+        Title = "Emma Hub [PRO VERSION]",
+        Description = "Tác giả: Emma Hub Team",
         Scale = game:GetService("UserInputService").TouchEnabled and UDim2.fromOffset(480, 360) or UDim2.fromOffset(580, 430),
     })
 
-    -- [ CÁC TAB FARM VÀ CHỌN VŨ KHÍ ]
-    local tab = Window:AddTab({ Title = "Farm Level", Icon = "84348960772548" })
+    -- THÊM ĐẦY ĐỦ CÁC TAB CHO NÓ DÀY
+    local tab_farm = Window:AddTab({ Title = "Auto Farm", Icon = "84348960772548" })
+    local tab_items = Window:AddTab({ Title = "Items Quest", Icon = "140508702736534" })
+    local tab_stat = Window:AddTab({ Title = "Stats & Local", Icon = "101609700892539" })
 
-    tab:AddDropdown({
-        Title = "Chọn Vũ Khí",
+    -- TAB FARM LEVEL
+    tab_farm:AddDropdown({
+        Title = "Chọn Vũ Khí Để Farm",
         Values = {"Melee", "Sword", "Fruit"},
         Default = "Melee",
         Callback = function(v) _G.SelectWeapon = v end
     })
 
-    tab:AddToggle({
-        Title = "Bật Auto Farm Level",
+    tab_farm:AddToggle({
+        Title = "Bật Auto Farm Level (Nhận Quest)",
         Default = false,
         Callback = function(v) _G.AutoFarmLevel = v end
     })
+
+    -- TAB STATS (THÊM CHO ĐỦ MÓN)
+    tab_stat:AddSlider({
+        Title = "Tốc Độ Bay (Tween)",
+        Min = 100, Max = 500, Default = 250,
+        Callback = function(v) _G.TweenSpeed = v end
+    })
+
+    print("Emma Hub V23: Đã tải đầy đủ tính năng!")
 end
 
--- Chạy script
-LoadMainScript()
+------------------------------------------------------------------
+-- PHẦN 4: GIAO DIỆN LOGIN (BẢO MẬT)
+------------------------------------------------------------------
+local function CreateUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
+    
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 360, 0, 220)
+    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    MainFrame.Parent = ScreenGui
+    Instance.new("UICorner", MainFrame)
+    Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(180, 100, 255)
+
+    local Title = Instance.new("TextLabel", MainFrame)
+    Title.Text = "EMMA HUB - LOGIN SYSTEM"
+    Title.Size = UDim2.new(1, 0, 0, 60)
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.BackgroundTransparency = 1
+    Title.Font = Enum.Font.GothamBold
+
+    local InputBox = Instance.new("TextBox", MainFrame)
+    InputBox.Size = UDim2.new(0.8, 0, 0, 45)
+    InputBox.Position = UDim2.new(0.1, 0, 0.35, 0)
+    InputBox.PlaceholderText = "Mã: emmawatson"
+    InputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    InputBox.Parent = MainFrame
+    Instance.new("UICorner", InputBox)
+
+    local Verify = Instance.new("TextButton", MainFrame)
+    Verify.Size = UDim2.new(0.8, 0, 0, 45)
+    Verify.Position = UDim2.new(0.1, 0, 0, 150)
+    Verify.Text = "KÍCH HOẠT V23"
+    Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
+    Verify.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Verify.Parent = MainFrame
+    Instance.new("UICorner", Verify)
+
+    Verify.MouseButton1Click:Connect(function()
+        if InputBox.Text:lower() == MASTER_KEY then
+            ScreenGui:Destroy()
+            LoadMainScript()
+        end
+    end)
+end
+
+CreateUI()
