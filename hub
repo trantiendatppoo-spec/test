@@ -1,20 +1,18 @@
--- [[ EMMA HUB V21 - FIX THEO YÊU CẦU ]] --
+-- [[ EMMA HUB V22 - REBRAND & FIX OWNER ]] --
 -- [[ MASTER KEY: emmawatson ]] --
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 -- 1. CẤU HÌNH
 local MASTER_KEY = "emmawatson"
 _G.AutoFarmLevel = false
-_G.SelectWeapon = "Melee" -- Mặc định là đấm
+_G.SelectWeapon = "Melee"
 
 ------------------------------------------------------------------
--- PHẦN 2: AUTO BUSO HAKI & AUTO EQUIP (CHỈ CẦM 1 MÓN)
+-- PHẦN 2: AUTO HAKI & AURA V15 (GIỮ NGUYÊN ĐỘ RÁT)
 ------------------------------------------------------------------
--- Tự bật Haki khi vào game
 task.spawn(function()
     while task.wait(1) do
         pcall(function()
@@ -25,25 +23,6 @@ task.spawn(function()
     end
 end)
 
--- Hàm cầm đúng vũ khí đã chọn
-local function EquipWeapon()
-    pcall(function()
-        local backpack = LocalPlayer.Backpack
-        local char = LocalPlayer.Character
-        if _G.AutoFarmLevel then
-            -- Chỉ tìm đúng loại vũ khí ông chọn trong Menu
-            for _, v in pairs(backpack:GetChildren()) do
-                if v:IsA("Tool") and (v.ToolTip == _G.SelectWeapon or v.Name == _G.SelectWeapon) then
-                    char.Humanoid:EquipTool(v)
-                end
-            end
-        end
-    end)
-end
-
-------------------------------------------------------------------
--- PHẦN 3: SIÊU AURA V15 (GIỮ NGUYÊN)
-------------------------------------------------------------------
 task.spawn(function()
     while task.wait() do
         pcall(function()
@@ -53,7 +32,6 @@ task.spawn(function()
                     if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
                         local hrp = mob.HumanoidRootPart
                         if (hrp.Position - char.HumanoidRootPart.Position).Magnitude <= 75 then
-                            -- Logic chém cực rát của V15
                             local net = ReplicatedStorage.Modules.Net
                             net["RE/RegisterAttack"]:FireServer()
                             net["RE/RegisterHit"]:FireServer(hrp, {{mob, hrp}}, nil, nil, "EmmaV15_Aura")
@@ -66,64 +44,22 @@ task.spawn(function()
 end)
 
 ------------------------------------------------------------------
--- PHẦN 4: LOGIC FARM LEVEL CHUẨN (NHẬN QUEST + TWEEN)
-------------------------------------------------------------------
--- (Sử dụng module Quests và GuideModule để đi nhận quest chuẩn)
-local Quests = require(ReplicatedStorage:WaitForChild("Quests"))
-local GuideModule = require(ReplicatedStorage:WaitForChild("GuideModule"))
-
-local function GetQuestData()
-    local level = LocalPlayer.Data.Level.Value
-    local name, quest, id = "", "", 0
-    local levelReq = 0
-    for i, v in next, Quests do
-        for id2, v2 in next, v do
-            if level >= v2.LevelReq and v2.LevelReq >= levelReq then
-                levelReq = v2.LevelReq
-                name, quest, id = next(v2.Task), i, id2
-            end
-        end
-    end
-    return name, quest, id
-end
-
-task.spawn(function()
-    while task.wait(0.5) do
-        if _G.AutoFarmLevel then
-            pcall(function()
-                local mobName, questName, questID = GetQuestData()
-                EquipWeapon() -- Gọi hàm cầm vũ khí
-                
-                if not LocalPlayer.PlayerGui.Main.Quest.Visible then
-                    -- Bay về NPC nhận nhiệm vụ
-                    local npcName = GuideModule.Data.LastClosestNPC
-                    local npc = workspace.NPCs:FindFirstChild(npcName) or ReplicatedStorage.NPCs:FindFirstChild(npcName)
-                    if npc then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("StartQuest", questName, questID)
-                    end
-                else
-                    -- Bay ra quái
-                    local targetMob = workspace.Enemies:FindFirstChild(mobName)
-                    if targetMob then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = targetMob.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0)
-                    end
-                end
-            end)
-        end
-    end
-end)
-
-------------------------------------------------------------------
--- PHẦN 5: MENU ĐIỀU KHIỂN
+-- PHẦN 3: GIAO DIỆN & FIX OWNER (DẸP THẰNG NIGHT X)
 ------------------------------------------------------------------
 local function LoadMainScript()
+    -- Nạp UI gốc
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
-    local Window = Library:NewWindow({Title = "Emma Hub V21", Description = "Aura V15 + Auto Haki"})
+    
+    -- ĐÈ THÔNG TIN OWNER (Đây là chỗ để dẹp tên NightX)
+    local Window = Library:NewWindow({
+        Title = "Emma Hub [PREMIUM]",
+        Description = "Owner: Emma Hub Team", -- Thay đổi thông tin tại đây
+        Scale = game:GetService("UserInputService").TouchEnabled and UDim2.fromOffset(480, 360) or UDim2.fromOffset(580, 430),
+    })
 
+    -- [ CÁC TAB FARM VÀ CHỌN VŨ KHÍ ]
     local tab = Window:AddTab({ Title = "Farm Level", Icon = "84348960772548" })
 
-    -- Nút chọn vũ khí để ông thay đổi tùy ý
     tab:AddDropdown({
         Title = "Chọn Vũ Khí",
         Values = {"Melee", "Sword", "Fruit"},
@@ -138,6 +74,5 @@ local function LoadMainScript()
     })
 end
 
--- Login UI giữ nguyên
--- (Tui không viết lại phần UI Login để đỡ tốn chỗ, ông cứ dán vào cái file loadstring là xong)
+-- Chạy script
 LoadMainScript()
