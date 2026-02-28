@@ -1,57 +1,90 @@
--- [[ EMMA HUB V33 - SIÊU FIX AURA & TELEPORT ]] --
--- [[ DẸP BỎ NIGHTX - KHÔNG CÒN LỖI ĐỨNG IM ]] --
+-- [[ EMMA HUB V36 - SIÊU FIX TRIỆT ĐỂ ]] --
+-- [[ KHÔNG CÒN NIGHTX - KHÔNG CÒN LỖI ĐỔI ĐỒ ]] --
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wall%20v3"))()
-local Window = Library:CreateWindow("Emma Hub [V33]", "Emma Hub Team", 101609700892539)
+local Window = Library:CreateWindow("Emma Hub [V36]", "Emma Hub Team", 101609700892539)
 
 local Tab = Window:CreateTab("Auto Farm")
 
--- 1. CẤU HÌNH LOGIC
+-- 1. BIẾN ĐIỀU KHIỂN
 _G.AutoFarm = false
 _G.SelectWeapon = "Melee"
 
-Tab:CreateDropdown("Chọn Vũ Khí", {"Melee", "Sword", "Fruit"}, function(v)
-    _G.SelectWeapon = v
-end)
-
-Tab:CreateToggle("Bật Auto Farm Level", function(state)
-    _G.AutoFarm = state
-    print("Auto Farm: " .. tostring(state))
-end)
-
--- 2. SIÊU LÕI FARM (AURA + TELE + AUTO HAKI)
+-- 2. ÉP BẬT HAKI & AURA NGAY LẬP TỨC (KHÔNG CẦN BẤM NÚT)
 task.spawn(function()
-    while task.wait() do
+    while task.wait(0.5) do
+        pcall(function()
+            local char = game.Players.LocalPlayer.Character
+            -- Luôn bật Haki đen người
+            if not char:FindFirstChild("HasBuso") then
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+            end
+            
+            -- Aura luôn sẵn sàng (Chém cực rát của V15)
+            if _G.AutoFarm then
+                for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                        if (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude <= 75 then
+                            local net = game:GetService("ReplicatedStorage").Modules.Net
+                            net["RE/RegisterAttack"]:FireServer()
+                            net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV36")
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- 3. LOGIC CẦM VŨ KHÍ CỨNG (SỬA LỖI KHÔNG CHỌN ĐƯỢC SWORD)
+task.spawn(function()
+    while task.wait(0.1) do
         if _G.AutoFarm then
             pcall(function()
                 local char = game.Players.LocalPlayer.Character
-                local root = char:FindFirstChild("HumanoidRootPart")
+                local backpack = game.Players.LocalPlayer.Backpack
                 
-                -- Tự bật Haki (Ép buộc)
-                if not char:FindFirstChild("HasBuso") then
-                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
-                end
-
-                -- Tìm quái để vả
-                for _, mob in ipairs(workspace.Enemies:GetChildren()) do
-                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        -- TELEPORT ÁP SÁT (Fix lỗi đứng im ở Café)
-                        root.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
-                        
-                        -- CẦM VŨ KHÍ
-                        local tool = game.Players.LocalPlayer.Backpack:FindFirstChild(_G.SelectWeapon) or char:FindFirstChild(_G.SelectWeapon)
-                        if tool and not char:FindFirstChild(tool.Name) then
-                            char.Humanoid:EquipTool(tool)
-                        end
-                        
-                        -- SIÊU AURA (Vả cực rát)
-                        local net = game:GetService("ReplicatedStorage").Modules.Net
-                        net["RE/RegisterAttack"]:FireServer()
-                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaFixV33")
+                -- Tìm đúng món vũ khí theo loại (Sword/Melee)
+                local tool = nil
+                for _, v in pairs(backpack:GetChildren()) do
+                    if v:IsA("Tool") and (v.ToolTip == _G.SelectWeapon or v.Name:find(_G.SelectWeapon)) then
+                        tool = v
                         break
                     end
                 end
+                
+                if tool and not char:FindFirstChild(tool.Name) then
+                    char.Humanoid:UnequipTools() -- Cất hết rác
+                    task.wait(0.05)
+                    char.Humanoid:EquipTool(tool) -- Chỉ cầm đúng món chọn
+                end
             end)
         end
+    end
+end)
+
+-- 4. GIAO DIỆN ĐIỀU KHIỂN (DẸP SẠCH DẤU VẾT NIGHTX)
+Tab:CreateDropdown("Chọn Vũ Khí Để Farm", {"Melee", "Sword", "Fruit"}, function(v)
+    _G.SelectWeapon = v
+end)
+
+Tab:CreateToggle("Bật Auto Farm (Teleport)", function(state)
+    _G.AutoFarm = state
+    -- ÉP NHÂN VẬT BAY RA KHỎI CAFÉ
+    if state then
+        task.spawn(function()
+            while _G.AutoFarm do
+                pcall(function()
+                    local char = game.Players.LocalPlayer.Character
+                    for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+                        if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                            char.HumanoidRootPart.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
+                            break
+                        end
+                    end
+                end)
+                task.wait()
+            end
+        end)
     end
 end)
