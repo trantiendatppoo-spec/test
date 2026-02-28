@@ -1,28 +1,48 @@
--- [[ EMMA HUB V25 - SIÊU ÁP SÁT & CHỈ CẦM 1 MÓN ]] --
+-- [[ EMMA HUB V26 - ANTI WEAPON SWITCH ]] --
 -- [[ KEY: emmawatson ]] --
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. CẤU HÌNH CỨNG (KHÔNG NHẢY VŨ KHÍ)
+-- 1. CẤU HÌNH CỨNG
 _G.AutoFarmLevel = false
-_G.SelectWeapon = "Melee" -- Ông chọn cái này 1 lần thôi, nó sẽ giữ nguyên
+_G.SelectWeapon = "Melee" -- Mặc định là đấm
 
--- 2. HÀM CẦM VŨ KHÍ (CHỈ CHẠY 1 LẦN KHI CẦN)
-local function SimpleEquip()
-    pcall(function()
-        local backpack = LocalPlayer.Backpack
-        local char = LocalPlayer.Character
-        -- Tìm đúng món ông chọn, không tìm món khác
-        local tool = backpack:FindFirstChild(_G.SelectWeapon) or backpack:FindFirstChildOfClass("Tool")
-        if tool and not char:FindFirstChild(tool.Name) then
-            char.Humanoid:EquipTool(tool)
+------------------------------------------------------------------
+-- PHẦN 2: CHẶN ĐỨNG VIỆC ĐỔI VŨ KHÍ LUNG TUNG
+------------------------------------------------------------------
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.AutoFarmLevel then
+            pcall(function()
+                local char = LocalPlayer.Character
+                local backpack = LocalPlayer.Backpack
+                
+                -- Tìm món vũ khí ông chọn
+                local tool = backpack:FindFirstChild(_G.SelectWeapon) or char:FindFirstChild(_G.SelectWeapon)
+                
+                if tool then
+                    -- Nếu món đó chưa cầm trên tay thì mới cầm
+                    if not char:FindFirstChild(tool.Name) then
+                        -- Xóa sạch các món khác đang cầm trên tay để tránh xung đột
+                        for _, v in pairs(char:GetChildren()) do
+                            if v:IsA("Tool") and v.Name ~= tool.Name then
+                                v.Parent = backpack
+                            end
+                        end
+                        -- Chỉ cầm duy nhất món này
+                        char.Humanoid:EquipTool(tool)
+                    end
+                end
+            end)
         end
-    end)
-end
+    end
+end)
 
--- 3. SIÊU AURA & TELEPORT ÁP SÁT (QUAN TRỌNG NHẤT)
+------------------------------------------------------------------
+-- PHẦN 3: SIÊU AURA & TELEPORT (GIỮ NGUYÊN ĐỘ CHUẨN)
+------------------------------------------------------------------
 task.spawn(function()
     while task.wait() do
         if _G.AutoFarmLevel then
@@ -31,20 +51,15 @@ task.spawn(function()
                 local root = char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- Tìm quái để bay tới
                 for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                     if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        -- TELEPORT: Bay thẳng tới trên đầu con quái 10 units để né đòn
+                        -- Bay sát quái và vả
                         root.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
                         
-                        -- Cầm đồ lên và vả
-                        SimpleEquip()
-                        
-                        -- Lệnh Aura rát của V15
                         local net = ReplicatedStorage.Modules.Net
                         net["RE/RegisterAttack"]:FireServer()
-                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV25")
-                        break -- Chỉ tập trung đánh 1 con cho xong rồi mới sang con khác
+                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV26_AntiSwitch")
+                        break 
                     end
                 end
             end)
@@ -52,28 +67,4 @@ task.spawn(function()
     end
 end)
 
--- 4. GIAO DIỆN (DÙNG ĐỂ BẬT TẮT)
-local function LoadEmmaV25()
-    local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
-    local Window = Library:NewWindow({
-        Title = "Emma Hub [V25 FIX]",
-        Description = "Đã Fix Teleport & Vũ Khí",
-    })
-
-    local tab = Window:AddTab({ Title = "Farm", Icon = "84348960772548" })
-
-    tab:AddDropdown({
-        Title = "Chọn Vũ Khí (Cố Định)",
-        Values = {"Melee", "Sword", "Fruit"},
-        Default = "Melee",
-        Callback = function(v) _G.SelectWeapon = v end
-    })
-
-    tab:AddToggle({
-        Title = "Bật Auto Farm (Teleport)",
-        Default = false,
-        Callback = function(v) _G.AutoFarmLevel = v end
-    })
-end
-
-LoadEmmaV25()
+-- (Phần Giao diện UI ông giữ nguyên như V25 nhé)
