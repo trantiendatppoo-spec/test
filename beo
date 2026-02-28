@@ -1,68 +1,77 @@
--- [[ EMMA HUB V27 - HARD LOCK WEAPON ]] --
+-- [[ EMMA HUB V29 - SIÊU TỐI GIẢN - BẤM LÀ CHẠY ]] --
 -- [[ KEY: emmawatson ]] --
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 -- 1. CẤU HÌNH CỨNG
-_G.AutoFarmLevel = false
-_G.SelectWeapon = "Melee" -- Mặc định là đấm (Melee)
+_G.AutoFarm = false
+_G.Weapon = "Melee" -- Đổi thành "Sword" nếu muốn dùng kiếm
 
-------------------------------------------------------------------
--- PHẦN 2: CHIÊU "KHÓA TAY" - CHỐNG NHẢY ĐỒ TUYỆT ĐỐI
-------------------------------------------------------------------
-task.spawn(function()
-    while task.wait(0.1) do
-        if _G.AutoFarmLevel then
-            pcall(function()
-                local char = LocalPlayer.Character
-                local backpack = LocalPlayer.Backpack
-                
-                -- Tìm món vũ khí ông chọn (Kiểm tra cả trong túi và trên tay)
-                local tool = backpack:FindFirstChild(_G.SelectWeapon) or char:FindFirstChild(_G.SelectWeapon)
-                
-                if tool then
-                    -- BƯỚC 1: Xóa sạch các món KHÔNG PHẢI món đã chọn đang nằm trên tay
-                    for _, v in pairs(char:GetChildren()) do
-                        if v:IsA("Tool") and v.Name ~= _G.SelectWeapon then
-                            v.Parent = backpack
-                        end
-                    end
-                    
-                    -- BƯỚC 2: Nếu món đã chọn chưa có trên tay, ép nó vào
-                    if not char:FindFirstChild(_G.SelectWeapon) then
-                        tool.Parent = char
-                    end
-                end
-            end)
-        end
-    end
-end)
-
-------------------------------------------------------------------
--- PHẦN 3: SIÊU AURA & TELEPORT (GIỮ NGUYÊN ĐỘ RÁT)
-------------------------------------------------------------------
+-- 2. HÀM AURA & TELE & EQUIP (GOM CHUNG CHO NHẸ)
 task.spawn(function()
     while task.wait() do
-        if _G.AutoFarmLevel then
+        if _G.AutoFarm then
             pcall(function()
                 local char = LocalPlayer.Character
                 local root = char:FindFirstChild("HumanoidRootPart")
-                if not root then return end
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                
+                -- Tự bật Haki
+                if not char:FindFirstChild("HasBuso") then
+                    ReplicatedStorage.Remotes.CommF_:InvokeServer("Buso")
+                end
 
+                -- Tìm quái và vả
                 for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                     if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        -- Bay sát quái 10 units để Aura vả trúng
+                        -- Bay sát quái
                         root.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
                         
-                        local net = ReplicatedStorage.Modules.Net
-                        net["RE/RegisterAttack"]:FireServer()
-                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV27_Fixed")
-                        break 
+                        -- Cầm vũ khí (Chỉ cầm 1 món duy nhất)
+                        local tool = LocalPlayer.Backpack:FindFirstChild(_G.Weapon) or char:FindFirstChild(_G.Weapon)
+                        if tool and not char:FindFirstChild(tool.Name) then
+                            hum:EquipTool(tool)
+                        end
+                        
+                        -- Aura vả quái
+                        ReplicatedStorage.Modules.Net["RE/RegisterAttack"]:FireServer()
+                        ReplicatedStorage.Modules.Net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV29")
+                        break
                     end
                 end
             end)
         end
     end
 end)
+
+-- 3. TẠO GIAO DIỆN SIÊU NHẸ (KHÔNG DÙNG THƯ VIỆN NGOÀI)
+local ScreenGui = Instance.new("ScreenGui", (gethui and gethui()) or game:GetService("CoreGui"))
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 200, 0, 100)
+Main.Position = UDim2.new(0.5, -100, 0.5, -50)
+Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Main.Active = true
+Main.Draggable = true -- Có thể kéo đi chỗ khác
+
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "EMMA HUB V29"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
+
+local Toggle = Instance.new("TextButton", Main)
+Toggle.Size = UDim2.new(0.8, 0, 0, 40)
+Toggle.Position = UDim2.new(0.1, 0, 0.45, 0)
+Toggle.Text = "AUTO FARM: OFF"
+Toggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+Toggle.MouseButton1Click:Connect(function()
+    _G.AutoFarm = not _G.AutoFarm
+    Toggle.Text = _G.AutoFarm and "AUTO FARM: ON" or "AUTO FARM: OFF"
+    Toggle.BackgroundColor3 = _G.AutoFarm and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+end)
+
+print("Emma Hub V29 Loaded!")
