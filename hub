@@ -1,144 +1,80 @@
--- [[ EMMA HUB V23 - FULL FEATURE & REBRAND ]] --
--- [[ MASTER KEY: emmawatson ]] --
+-- [[ EMMA HUB V24 - SIÊU FIX TRIỆT ĐỂ ]] --
+-- [[ KEY: emmawatson ]] --
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- 1. CẤU HÌNH HỆ THỐNG
-local MASTER_KEY = "emmawatson"
-_G.AutoFarmLevel = false
-_G.SelectWeapon = "Melee"
-_G.TweenSpeed = 250
-
-------------------------------------------------------------------
--- PHẦN 2: LOGIC GAME (HAKI, AURA, NHẬN QUEST)
-------------------------------------------------------------------
-local Quests = require(ReplicatedStorage:WaitForChild("Quests"))
-local GuideModule = require(ReplicatedStorage:WaitForChild("GuideModule"))
-
--- Tự động bật Haki vĩnh viễn
+-- 1. ÉP BẬT HAKI & SIÊU AURA VĨNH VIỄN (KHÔNG CẦN BẬT NÚT)
 task.spawn(function()
-    while task.wait(1) do
+    while task.wait(0.1) do
         pcall(function()
+            -- Tự bật Buso Haki ngay khi vào game
             if not LocalPlayer.Character:FindFirstChild("HasBuso") then
                 ReplicatedStorage.Remotes.CommF_:InvokeServer("Buso")
+            end
+            
+            -- Siêu Aura Quét Quái (Độ rát V15)
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                for _, mob in ipairs(workspace.Enemies:GetChildren()) do
+                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                        if (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude <= 75 then
+                            local tool = char:FindFirstChildOfClass("Tool")
+                            if tool then
+                                ReplicatedStorage.Modules.Net["RE/RegisterAttack"]:FireServer()
+                                ReplicatedStorage.Modules.Net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV24")
+                            end
+                        end
+                    end
+                end
             end
         end)
     end
 end)
 
--- Siêu Aura V15 (Giữ đúng độ rát ông thích)
-task.spawn(function()
-    while task.wait() do
-        if _G.AutoFarmLevel then
-            pcall(function()
-                local char = LocalPlayer.Character
-                for _, mob in ipairs(workspace.Enemies:GetChildren()) do
-                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        local hrp = mob.HumanoidRootPart
-                        if (hrp.Position - char.HumanoidRootPart.Position).Magnitude <= 75 then
-                            local net = ReplicatedStorage.Modules.Net
-                            net["RE/RegisterAttack"]:FireServer()
-                            net["RE/RegisterHit"]:FireServer(hrp, {{mob, hrp}}, nil, nil, "EmmaV23_Aura")
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
-
-------------------------------------------------------------------
--- PHẦN 3: GIAO DIỆN CHÍNH (DẸP BỎ NIGHT X)
-------------------------------------------------------------------
-local function LoadMainScript()
+-- 2. GIAO DIỆN MỚI - DẸP BỎ DẤU VẾT NIGHTX
+local function LoadEmmaV24()
     local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhiteX1208/NightUI/refs/heads/main/Source.lua"))()
     
-    -- Chỉnh sửa thông tin Window để xóa dấu vết NightX
+    -- Xóa sổ NightX bằng cách đè Description và Title mạnh tay
     local Window = Library:NewWindow({
-        Title = "Emma Hub [PRO VERSION]",
-        Description = "Tác giả: Emma Hub Team",
+        Title = "Emma Hub [GOD MODE]",
+        Description = "Emma Hub Team - Safe & Fast",
         Scale = game:GetService("UserInputService").TouchEnabled and UDim2.fromOffset(480, 360) or UDim2.fromOffset(580, 430),
     })
 
-    -- THÊM ĐẦY ĐỦ CÁC TAB CHO NÓ DÀY
-    local tab_farm = Window:AddTab({ Title = "Auto Farm", Icon = "84348960772548" })
-    local tab_items = Window:AddTab({ Title = "Items Quest", Icon = "140508702736534" })
-    local tab_stat = Window:AddTab({ Title = "Stats & Local", Icon = "101609700892539" })
+    local tab = Window:AddTab({ Title = "Main Farm", Icon = "84348960772548" })
 
-    -- TAB FARM LEVEL
-    tab_farm:AddDropdown({
-        Title = "Chọn Vũ Khí Để Farm",
+    -- Dropdown vũ khí giúp Aura biết chém bằng cái gì
+    tab:AddDropdown({
+        Title = "Vũ Khí Farm",
         Values = {"Melee", "Sword", "Fruit"},
         Default = "Melee",
         Callback = function(v) _G.SelectWeapon = v end
     })
 
-    tab_farm:AddToggle({
-        Title = "Bật Auto Farm Level (Nhận Quest)",
+    tab:AddToggle({
+        Title = "Bật Auto Farm Level (Tween)",
         Default = false,
         Callback = function(v) _G.AutoFarmLevel = v end
     })
-
-    -- TAB STATS (THÊM CHO ĐỦ MÓN)
-    tab_stat:AddSlider({
-        Title = "Tốc Độ Bay (Tween)",
-        Min = 100, Max = 500, Default = 250,
-        Callback = function(v) _G.TweenSpeed = v end
-    })
-
-    print("Emma Hub V23: Đã tải đầy đủ tính năng!")
-end
-
-------------------------------------------------------------------
--- PHẦN 4: GIAO DIỆN LOGIN (BẢO MẬT)
-------------------------------------------------------------------
-local function CreateUI()
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
     
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 360, 0, 220)
-    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    MainFrame.Parent = ScreenGui
-    Instance.new("UICorner", MainFrame)
-    Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(180, 100, 255)
-
-    local Title = Instance.new("TextLabel", MainFrame)
-    Title.Text = "EMMA HUB - LOGIN SYSTEM"
-    Title.Size = UDim2.new(1, 0, 0, 60)
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.BackgroundTransparency = 1
-    Title.Font = Enum.Font.GothamBold
-
-    local InputBox = Instance.new("TextBox", MainFrame)
-    InputBox.Size = UDim2.new(0.8, 0, 0, 45)
-    InputBox.Position = UDim2.new(0.1, 0, 0.35, 0)
-    InputBox.PlaceholderText = "Mã: emmawatson"
-    InputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    InputBox.Parent = MainFrame
-    Instance.new("UICorner", InputBox)
-
-    local Verify = Instance.new("TextButton", MainFrame)
-    Verify.Size = UDim2.new(0.8, 0, 0, 45)
-    Verify.Position = UDim2.new(0.1, 0, 0, 150)
-    Verify.Text = "KÍCH HOẠT V23"
-    Verify.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
-    Verify.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Verify.Parent = MainFrame
-    Instance.new("UICorner", Verify)
-
-    Verify.MouseButton1Click:Connect(function()
-        if InputBox.Text:lower() == MASTER_KEY then
-            ScreenGui:Destroy()
-            LoadMainScript()
+    -- Tự động cầm vũ khí khi bật Farm
+    task.spawn(function()
+        while task.wait(0.5) do
+            if _G.AutoFarmLevel then
+                pcall(function()
+                    local tool = LocalPlayer.Backpack:FindFirstChild(_G.SelectWeapon) or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
+                    if tool and not LocalPlayer.Character:FindFirstChild(tool.Name) then
+                        LocalPlayer.Character.Humanoid:EquipTool(tool)
+                    end
+                end)
+            end
         end
     end)
 end
 
-CreateUI()
+-- 3. BẢNG LOGIN SIÊU GỌN
+-- (Ông cháu tự gọi hàm LoadEmmaV24() sau khi check key emmawatson nhé!)
+LoadEmmaV24()
