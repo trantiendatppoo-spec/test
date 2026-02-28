@@ -1,4 +1,4 @@
--- [[ EMMA HUB V26 - ANTI WEAPON SWITCH ]] --
+-- [[ EMMA HUB V27 - HARD LOCK WEAPON ]] --
 -- [[ KEY: emmawatson ]] --
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7,10 +7,10 @@ local LocalPlayer = Players.LocalPlayer
 
 -- 1. CẤU HÌNH CỨNG
 _G.AutoFarmLevel = false
-_G.SelectWeapon = "Melee" -- Mặc định là đấm
+_G.SelectWeapon = "Melee" -- Mặc định là đấm (Melee)
 
 ------------------------------------------------------------------
--- PHẦN 2: CHẶN ĐỨNG VIỆC ĐỔI VŨ KHÍ LUNG TUNG
+-- PHẦN 2: CHIÊU "KHÓA TAY" - CHỐNG NHẢY ĐỒ TUYỆT ĐỐI
 ------------------------------------------------------------------
 task.spawn(function()
     while task.wait(0.1) do
@@ -19,20 +19,20 @@ task.spawn(function()
                 local char = LocalPlayer.Character
                 local backpack = LocalPlayer.Backpack
                 
-                -- Tìm món vũ khí ông chọn
+                -- Tìm món vũ khí ông chọn (Kiểm tra cả trong túi và trên tay)
                 local tool = backpack:FindFirstChild(_G.SelectWeapon) or char:FindFirstChild(_G.SelectWeapon)
                 
                 if tool then
-                    -- Nếu món đó chưa cầm trên tay thì mới cầm
-                    if not char:FindFirstChild(tool.Name) then
-                        -- Xóa sạch các món khác đang cầm trên tay để tránh xung đột
-                        for _, v in pairs(char:GetChildren()) do
-                            if v:IsA("Tool") and v.Name ~= tool.Name then
-                                v.Parent = backpack
-                            end
+                    -- BƯỚC 1: Xóa sạch các món KHÔNG PHẢI món đã chọn đang nằm trên tay
+                    for _, v in pairs(char:GetChildren()) do
+                        if v:IsA("Tool") and v.Name ~= _G.SelectWeapon then
+                            v.Parent = backpack
                         end
-                        -- Chỉ cầm duy nhất món này
-                        char.Humanoid:EquipTool(tool)
+                    end
+                    
+                    -- BƯỚC 2: Nếu món đã chọn chưa có trên tay, ép nó vào
+                    if not char:FindFirstChild(_G.SelectWeapon) then
+                        tool.Parent = char
                     end
                 end
             end)
@@ -41,7 +41,7 @@ task.spawn(function()
 end)
 
 ------------------------------------------------------------------
--- PHẦN 3: SIÊU AURA & TELEPORT (GIỮ NGUYÊN ĐỘ CHUẨN)
+-- PHẦN 3: SIÊU AURA & TELEPORT (GIỮ NGUYÊN ĐỘ RÁT)
 ------------------------------------------------------------------
 task.spawn(function()
     while task.wait() do
@@ -53,12 +53,12 @@ task.spawn(function()
 
                 for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                     if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        -- Bay sát quái và vả
+                        -- Bay sát quái 10 units để Aura vả trúng
                         root.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
                         
                         local net = ReplicatedStorage.Modules.Net
                         net["RE/RegisterAttack"]:FireServer()
-                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV26_AntiSwitch")
+                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV27_Fixed")
                         break 
                     end
                 end
@@ -66,5 +66,3 @@ task.spawn(function()
         end
     end
 end)
-
--- (Phần Giao diện UI ông giữ nguyên như V25 nhé)
