@@ -1,65 +1,54 @@
--- [[ EMMA HUB V27 - HARD LOCK WEAPON ]] --
--- [[ KEY: emmawatson ]] --
+-- [[ EMMA HUB V32 - ĐÈ BỆP NIGHTX - FIX NHẢY ĐỒ ]] --
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wall%20v3"))()
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+-- 1. TẠO UI MỚI (Xóa sổ thông tin NightX)
+local Window = Library:CreateWindow("Emma Hub [PRO]", "Emma Hub Team", 101609700892539)
 
--- 1. CẤU HÌNH CỨNG
-_G.AutoFarmLevel = false
-_G.SelectWeapon = "Melee" -- Mặc định là đấm (Melee)
+local Tab1 = Window:CreateTab("Auto Farm")
+local Tab2 = Window:CreateTab("Settings")
 
-------------------------------------------------------------------
--- PHẦN 2: CHIÊU "KHÓA TAY" - CHỐNG NHẢY ĐỒ TUYỆT ĐỐI
-------------------------------------------------------------------
-task.spawn(function()
-    while task.wait(0.1) do
-        if _G.AutoFarmLevel then
-            pcall(function()
-                local char = LocalPlayer.Character
-                local backpack = LocalPlayer.Backpack
-                
-                -- Tìm món vũ khí ông chọn (Kiểm tra cả trong túi và trên tay)
-                local tool = backpack:FindFirstChild(_G.SelectWeapon) or char:FindFirstChild(_G.SelectWeapon)
-                
-                if tool then
-                    -- BƯỚC 1: Xóa sạch các món KHÔNG PHẢI món đã chọn đang nằm trên tay
-                    for _, v in pairs(char:GetChildren()) do
-                        if v:IsA("Tool") and v.Name ~= _G.SelectWeapon then
-                            v.Parent = backpack
-                        end
-                    end
-                    
-                    -- BƯỚC 2: Nếu món đã chọn chưa có trên tay, ép nó vào
-                    if not char:FindFirstChild(_G.SelectWeapon) then
-                        tool.Parent = char
-                    end
-                end
-            end)
-        end
-    end
+-- 2. CẤU HÌNH LOGIC
+_G.AutoFarm = false
+_G.Weapon = "Melee"
+
+Tab1:CreateDropdown("Chọn Vũ Khí", {"Melee", "Sword", "Fruit"}, function(v)
+    _G.Weapon = v
 end)
 
-------------------------------------------------------------------
--- PHẦN 3: SIÊU AURA & TELEPORT (GIỮ NGUYÊN ĐỘ RÁT)
-------------------------------------------------------------------
+Tab1:CreateToggle("Bật Auto Farm Level", function(state)
+    _G.AutoFarm = state
+end)
+
+-- 3. SIÊU LÕI FARM (ÁP SÁT + CHỐNG NHẢY ĐỒ)
 task.spawn(function()
     while task.wait() do
-        if _G.AutoFarmLevel then
+        if _G.AutoFarm then
             pcall(function()
-                local char = LocalPlayer.Character
-                local root = char:FindFirstChild("HumanoidRootPart")
-                if not root then return end
+                local char = game.Players.LocalPlayer.Character
+                local backpack = game.Players.LocalPlayer.Backpack
+                
+                -- Tự bật Haki
+                if not char:FindFirstChild("HasBuso") then
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+                end
 
+                -- Tìm quái
                 for _, mob in ipairs(workspace.Enemies:GetChildren()) do
                     if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-                        -- Bay sát quái 10 units để Aura vả trúng
-                        root.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
+                        -- Bay sát quái
+                        char.HumanoidRootPart.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
                         
-                        local net = ReplicatedStorage.Modules.Net
+                        -- KHÓA VŨ KHÍ TUYỆT ĐỐI (Fix lỗi nhảy đồ)
+                        local tool = backpack:FindFirstChild(_G.Weapon) or char:FindFirstChild(_G.Weapon)
+                        if tool and not char:FindFirstChild(tool.Name) then
+                            char.Humanoid:EquipTool(tool)
+                        end
+                        
+                        -- Aura vả quái
+                        local net = game:GetService("ReplicatedStorage").Modules.Net
                         net["RE/RegisterAttack"]:FireServer()
-                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV27_Fixed")
-                        break 
+                        net["RE/RegisterHit"]:FireServer(mob.HumanoidRootPart, {{mob, mob.HumanoidRootPart}}, nil, nil, "EmmaV32")
+                        break
                     end
                 end
             end)
